@@ -88,7 +88,10 @@
     <Border x:Name="DonePanel" IsVisible="False" Background="#2216A34A" CornerRadius="10" Padding="12,10">
       <StackPanel Spacing="8">
         <SelectableTextBlock x:Name="DoneText" TextWrapping="Wrap" FontSize="13" />
-        <Button Content="Open folder" HorizontalAlignment="Left" Click="OnOpenFolderClick" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button Content="Open folder" Click="OnOpenFolderClick" />
+          <Button Content="View results" Click="OnViewResultsClick" />
+        </StackPanel>
       </StackPanel>
     </Border>
 

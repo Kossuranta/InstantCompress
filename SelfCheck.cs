@@ -37,12 +37,15 @@ public static class SelfCheck
             foreach (string format in new[] { "jpg", "png", "webp" })
             {
                 var errors = new List<string>();
-                string outDir = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
+                var batch = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
                     0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
                 if (errors.Count > 0) return Fail("errors: " + string.Join("; ", errors));
+                if (batch.Files.Count != inputs.Length || !batch.Files.All(f =>
+                        f.Status == Compressor.FileStatus.Ok && f.CompressedBytes > 0))
+                    return Fail("per-file results wrong for " + format);
                 foreach (string name in new[] { $"grad_png.{format}", $"grad_jpg.{format}", $"grad_png_1.{format}" })
                 {
-                    string outPath = Path.Combine(outDir, name);
+                    string outPath = Path.Combine(batch.OutDir, name);
                     if (!File.Exists(outPath) || new FileInfo(outPath).Length == 0)
                         return Fail("missing or empty output: " + outPath);
                 }
@@ -105,10 +108,10 @@ public static class SelfCheck
     private static bool ResizeOk(string[] inputs)
     {
         var errors = new List<string>();
-        string outDir = Compressor.CompressBatch(inputs, "jpg", Compressor.Presets[Preset.Medium],
+        var batch = Compressor.CompressBatch(inputs, "jpg", Compressor.Presets[Preset.Medium],
             256, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
         if (errors.Count > 0) return false;
-        foreach (string f in Directory.EnumerateFiles(outDir))
+        foreach (string f in Directory.EnumerateFiles(batch.OutDir))
         {
             using var bmp = SKBitmap.Decode(f);
             if (bmp == null || Math.Max(bmp.Width, bmp.Height) > 256) return false;

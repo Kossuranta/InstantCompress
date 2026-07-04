@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -25,6 +26,7 @@ public partial class MainWindow : Window
     private readonly List<string> _errors = [];
     private int _done, _total;
     private string? _lastOutDir;       // last batch's output folder, for the Open folder button
+    private IReadOnlyList<Compressor.FileResult> _lastResults = [];
     private long _bytesDone, _bytesTotal;
     private readonly DispatcherTimer _etaTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly IBrush _normalBorder, _accentBorder;
@@ -247,7 +249,9 @@ public partial class MainWindow : Window
                 err => Dispatcher.UIThread.Post(() => AppendError(err)),
                 _cts.Token));
             _job = job;
-            outDir = await job;
+            var result = await job;
+            outDir = result.OutDir;
+            _lastResults = result.Files;
         }
         catch (Exception ex)
         {
@@ -269,6 +273,64 @@ public partial class MainWindow : Window
             DoneText.Text = _cancelled ? $"Cancelled — partial output in {outDir}" : $"Done — {outDir}";
             DonePanel.IsVisible = true;
         }
+    }
+
+    /// <summary>
+    /// Opens a scrollable per-file results list (original/compressed size, ratio; failed/skipped flagged).
+    /// </summary>
+    private void OnViewResultsClick(object? sender, RoutedEventArgs e)
+    {
+        new Window
+        {
+            Title = "Results",
+            Width = 560,
+            Height = 460,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Content = new ScrollViewer
+            {
+                Padding = new Thickness(16),
+                Content = new SelectableTextBlock
+                {
+                    Text = BuildResultsText(),
+                    FontFamily = new FontFamily("Consolas, Menlo, monospace"),
+                    FontSize = 12,
+                },
+            },
+        }.Show(this);
+    }
+
+    /// <summary>
+    /// Formats the last batch's per-file results as an aligned monospace table.
+    /// </summary>
+    private string BuildResultsText()
+    {
+        if (_lastResults.Count == 0) return "No results.";
+        int nameW = Math.Min(40, _lastResults.Max(r => Path.GetFileName(r.Input).Length));
+        var lines = _lastResults.Select(r =>
+        {
+            string name = Path.GetFileName(r.Input).PadRight(nameW);
+            return r.Status switch
+            {
+                Compressor.FileStatus.Ok =>
+                    $"{name}  {HumanBytes(r.OriginalBytes),9} → {HumanBytes(r.CompressedBytes),9}  ({Ratio(r)})",
+                Compressor.FileStatus.Failed => $"{name}  failed: {r.Error}",
+                _ => $"{name}  skipped",
+            };
+        });
+        return string.Join("\n", lines);
+    }
+
+    /// <summary>Compressed-to-original ratio as a percentage, or "—" when the original size is unknown.</summary>
+    private static string Ratio(Compressor.FileResult r) =>
+        r.OriginalBytes > 0 ? $"{100.0 * r.CompressedBytes / r.OriginalBytes:0}%" : "—";
+
+    /// <summary>Human-readable byte size (B/KB/MB/GB).</summary>
+    private static string HumanBytes(long b)
+    {
+        string[] u = ["B", "KB", "MB", "GB"];
+        double v = b; var i = 0;
+        while (v >= 1024 && i < u.Length - 1) { v /= 1024; i++; }
+        return i == 0 ? $"{b} B" : $"{v:0.#} {u[i]}";
     }
 
     /// <summary>

@@ -60,6 +60,16 @@ public static class Compressor
     /// </summary>
     public readonly record struct Progress(int Done, int Total, string CurrentFile, long BytesDone, long BytesTotal);
 
+    /// <summary>Outcome of one file. Skipped = never processed (batch was cancelled before reaching it).</summary>
+    public enum FileStatus { Ok, Failed, Skipped }
+
+    /// <summary>Per-file result for the results view.</summary>
+    public readonly record struct FileResult(
+        string Input, string? Output, long OriginalBytes, long CompressedBytes, FileStatus Status, string? Error);
+
+    /// <summary>What a batch produced: the output folder and one <see cref="FileResult"/> per input.</summary>
+    public sealed record BatchResult(string OutDir, IReadOnlyList<FileResult> Files);
+
     /// <summary>
     /// Compresses <paramref name="files"/> into a new timestamped folder next to the first input.
     /// </summary>
@@ -67,8 +77,8 @@ public static class Compressor
     /// Callbacks fire on worker threads — the caller marshals to its UI thread. Throws on whole-batch
     /// failure (e.g. output-dir creation); per-file failures go to <paramref name="onError"/>.
     /// </remarks>
-    /// <returns>The directory, returned even when cancelled (partial output is kept).</returns>
-    public static string CompressBatch(IReadOnlyList<string> files, string format, PresetSettings preset,
+    /// <returns>The output folder and per-file results, returned even when cancelled (partial output is kept).</returns>
+    public static BatchResult CompressBatch(IReadOnlyList<string> files, string format, PresetSettings preset,
                                        int maxDim, Action<Progress> onProgress, Action<string> onError,
                                        CancellationToken ct)
     {
@@ -95,6 +105,11 @@ public static class Compressor
             outPaths[i] = Path.Combine(outDir, name);
         }
 
+        // Pre-seed as Skipped: any index a worker never reaches (cancelled batch) keeps that status.
+        var results = new FileResult[files.Count];
+        for (var i = 0; i < files.Count; i++)
+            results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Skipped, null);
+
         var done = 0;
         long bytesDone = 0;
         var po = new ParallelOptions
@@ -109,9 +124,17 @@ public static class Compressor
             Parallel.ForEach(Partitioner.Create(Enumerable.Range(0, files.Count),
                                                 EnumerablePartitionerOptions.NoBuffering), po, i =>
             {
-                try { CompressOne(files[i], outPaths[i], format, preset, maxDim, ct); }
-                catch (OperationCanceledException) { throw; }                // stop the loop
-                catch (Exception e) { onError($"{files[i]}: {e.Message}"); } // per-file: collect, continue
+                try
+                {
+                    long outBytes = CompressOne(files[i], outPaths[i], format, preset, maxDim, ct);
+                    results[i] = new FileResult(files[i], outPaths[i], sizes[i], outBytes, FileStatus.Ok, null);
+                }
+                catch (OperationCanceledException) { throw; }                // stop the loop (index stays Skipped)
+                catch (Exception e)                                          // per-file: record, continue
+                {
+                    onError($"{files[i]}: {e.Message}");
+                    results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Failed, e.Message);
+                }
                 onProgress(new Progress(Interlocked.Increment(ref done), files.Count,
                                         Path.GetFileName(files[i]),
                                         Interlocked.Add(ref bytesDone, sizes[i]), bytesTotal));
@@ -119,7 +142,7 @@ public static class Compressor
         }
         catch (OperationCanceledException) { }                           // cancelled: partial output stays
         catch (AggregateException) when (ct.IsCancellationRequested) { } // worker OCEs, same thing
-        return outDir;
+        return new BatchResult(outDir, results);
     }
 
     // A decoded bitmap + native encode buffers for one worker: 50MP photos decode to ~200-400MB.
@@ -258,7 +281,8 @@ public static class Compressor
     /// Decodes one image (orientation applied), optionally downscales to <paramref name="maxDim"/> (0 = off),
     /// and re-encodes it to <paramref name="outPath"/>; deletes the output on error or cancel.
     /// </summary>
-    private static void CompressOne(string path, string outPath, string format, PresetSettings preset, int maxDim, CancellationToken ct)
+    /// <returns>Size of the written output file in bytes.</returns>
+    private static long CompressOne(string path, string outPath, string format, PresetSettings preset, int maxDim, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         using var decoded = DecodeOriented(path)
@@ -270,24 +294,27 @@ public static class Compressor
         try
         {
             // 64KB buffer: Skia pushes many small blocks; File.Create's 4KB default = syscall storm.
-            using var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16);
-            using var ws = new SKManagedWStream(fs);
-            using var pix = bmp.PeekPixels();
-            // ponytail: cancel is checked between stages only; Skia's native encode isn't safely abortable
-            // mid-stream — worst-case cancel latency is one file's encode.
-            bool ok = format switch
+            using (var fs = new FileStream(outPath, FileMode.Create, FileAccess.Write, FileShare.None, 1 << 16))
+            using (var ws = new SKManagedWStream(fs))
+            using (var pix = bmp.PeekPixels())
             {
-                // BlendOnBlack flattens alpha inside the native encoder (JPEG has no alpha).
-                "jpg" => pix.Encode(ws, new SKJpegEncoderOptions(preset.JpgQuality,
-                             SKJpegEncoderDownsample.Downsample420, SKJpegEncoderAlphaOption.BlendOnBlack)),
-                // Lossy WebP; quality shares the 0-100 scale with JPEG.
-                "webp" => pix.Encode(ws, new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, preset.JpgQuality)),
-                // SKPngEncoderOptions is the only Skia PNG path honoring a zlib level;
-                // SKBitmap.Encode(Png, quality) ignores quality entirely.
-                _ => pix.Encode(ws, new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, preset.PngLevel)),
-            };
-            if (!ok) throw new Exception("Encode failed");
-            ct.ThrowIfCancellationRequested(); // cancelled during encode: deleted below
+                // ponytail: cancel is checked between stages only; Skia's native encode isn't safely abortable
+                // mid-stream — worst-case cancel latency is one file's encode.
+                bool ok = format switch
+                {
+                    // BlendOnBlack flattens alpha inside the native encoder (JPEG has no alpha).
+                    "jpg" => pix.Encode(ws, new SKJpegEncoderOptions(preset.JpgQuality,
+                                 SKJpegEncoderDownsample.Downsample420, SKJpegEncoderAlphaOption.BlendOnBlack)),
+                    // Lossy WebP; quality shares the 0-100 scale with JPEG.
+                    "webp" => pix.Encode(ws, new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, preset.JpgQuality)),
+                    // SKPngEncoderOptions is the only Skia PNG path honoring a zlib level;
+                    // SKBitmap.Encode(Png, quality) ignores quality entirely.
+                    _ => pix.Encode(ws, new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, preset.PngLevel)),
+                };
+                if (!ok) throw new Exception("Encode failed");
+                ct.ThrowIfCancellationRequested(); // cancelled during encode: deleted below
+            }
+            return new FileInfo(outPath).Length; // stream closed above, so the length is final
         }
         catch
         {
