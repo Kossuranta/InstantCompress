@@ -59,4 +59,4 @@ Notes:
 dotnet run
 ```
 
-See [BUILD.md](.claude/BUILD.md) for publishing self-contained single-file executables per platform, and `--selfcheck` for a headless pipeline test.
+See [BUILD.md](BUILD.md) for publishing self-contained single-file executables per platform, and `--selfcheck` for a headless pipeline test.
