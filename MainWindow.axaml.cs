@@ -14,7 +14,7 @@ namespace InstantCompress;
 /// </summary>
 public partial class MainWindow : Window
 {
-    private Preset _preset = Preset.Low;
+    private Preset _preset = Preset.Medium; // matches the Balanced default checked in XAML
     private string _format = "jpg";
     // ponytail: single-job assumption (one window, one bool).
     private bool _busy, _cancelled;

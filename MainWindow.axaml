@@ -35,9 +35,9 @@
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
       <Border Classes="seg">
         <StackPanel x:Name="PresetGroup" Orientation="Horizontal" Spacing="3">
-          <ToggleButton Content="low" Tag="low" IsChecked="True" Click="OnSegClick" />
-          <ToggleButton Content="medium" Tag="medium" Click="OnSegClick" />
-          <ToggleButton Content="high" Tag="high" Click="OnSegClick" />
+          <ToggleButton Content="Small" Tag="low" Click="OnSegClick" />
+          <ToggleButton Content="Balanced" Tag="medium" IsChecked="True" Click="OnSegClick" />
+          <ToggleButton Content="Best" Tag="high" Click="OnSegClick" />
         </StackPanel>
       </Border>
       <Border Classes="seg">
