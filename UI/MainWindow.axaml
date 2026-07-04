@@ -29,7 +29,7 @@
   </Window.Styles>
 
   <Panel>
-  <StackPanel Margin="24,20" Spacing="12">
+  <StackPanel x:Name="MainPage" Margin="24,20" Spacing="12">
     <TextBlock Text="Instant Compress" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" />
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
@@ -41,11 +41,14 @@
             <ToggleButton Content="Low" Tag="high" Click="OnSegClick" />
             <ToggleButton Content="Medium" Tag="medium" IsChecked="True" Click="OnSegClick" />
             <ToggleButton Content="High" Tag="low" Click="OnSegClick" />
+            <ToggleButton Content="Custom" Tag="custom" Click="OnSegClick" />
           </StackPanel>
         </Border>
         <TextBlock Text="Higher compression means lower image quality." FontSize="11"
                    Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
                    TextWrapping="Wrap" TextAlignment="Center" MaxWidth="160" />
+        <Button x:Name="SettingsButton" Content="Settings" FontSize="11" Padding="10,4" IsVisible="False"
+                HorizontalAlignment="Center" Click="OnSettingsClick" ToolTip.Tip="Custom quality &amp; resize" />
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Text="Result file type" FontSize="12" Foreground="{StaticResource Muted}"
@@ -58,20 +61,6 @@
           </StackPanel>
         </Border>
       </StackPanel>
-    </StackPanel>
-
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,-4,0,0">
-      <CheckBox x:Name="CustomToggle" Content="Custom quality" IsCheckedChanged="OnCustomToggled"
-                VerticalAlignment="Center" />
-      <NumericUpDown x:Name="CustomValue" Minimum="1" Maximum="100" Increment="1" Width="120"
-                     IsEnabled="False" FormatString="0" ValueChanged="OnCustomValueChanged" />
-    </StackPanel>
-
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <CheckBox x:Name="ResizeToggle" Content="Resize to max px" IsCheckedChanged="OnResizeToggled"
-                VerticalAlignment="Center" />
-      <NumericUpDown x:Name="ResizeValue" Minimum="16" Maximum="20000" Increment="128" Width="130"
-                     IsEnabled="False" FormatString="0" ValueChanged="OnResizeValueChanged" />
     </StackPanel>
 
     <!-- Solid border; Avalonia Border has no dash support -->
@@ -113,8 +102,29 @@
       </ScrollViewer>
     </Border>
   </StackPanel>
+
+  <StackPanel x:Name="SettingsPage" Margin="24,20" Spacing="16" IsVisible="False">
+    <TextBlock Text="Custom settings" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+      <TextBlock Text="Quality / level" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="CustomValue" Minimum="1" Maximum="100" Increment="1" Width="120"
+                     FormatString="0" ValueChanged="OnCustomValueChanged" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+      <CheckBox x:Name="ResizeToggle" Content="Resize to max px" IsCheckedChanged="OnResizeToggled"
+                VerticalAlignment="Center" />
+      <NumericUpDown x:Name="ResizeValue" Minimum="16" Maximum="20000" Increment="128" Width="130"
+                     IsEnabled="False" FormatString="0" ValueChanged="OnResizeValueChanged" />
+    </StackPanel>
+  </StackPanel>
+
   <ToggleButton x:Name="ThemeToggle" Padding="12,5"
                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
                 Click="OnThemeToggleClick" ToolTip.Tip="Toggle dark/light theme" />
+  <Button x:Name="BackButton" Content="Back" Padding="12,5" IsVisible="False"
+          HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12"
+          Click="OnBackClick" ToolTip.Tip="Back to main page" />
   </Panel>
 </Window>

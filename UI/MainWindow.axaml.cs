@@ -98,10 +98,9 @@ public partial class MainWindow : Window
         _loading = true;
         _preset = Enum.Parse<Preset>(_settings.Preset, ignoreCase: true);
         _format = _settings.Format;
-        SelectInGroup(PresetGroup, _settings.Preset);
+        SelectInGroup(PresetGroup, _settings.CustomOn ? "custom" : _settings.Preset);
         SelectInGroup(FormatGroup, _settings.Format);
-        CustomToggle.IsChecked = _settings.CustomOn;
-        CustomValue.IsEnabled = _settings.CustomOn;
+        SettingsButton.IsVisible = _settings.CustomOn;
         SyncCustomRange();
         ResizeToggle.IsChecked = _settings.ResizeOn;
         ResizeValue.IsEnabled = _settings.ResizeOn;
@@ -139,16 +138,6 @@ public partial class MainWindow : Window
         _settings.Preset = _preset.ToString().ToLowerInvariant();
         _settings.Format = _format;
         SettingsStore.Save(_settings);
-    }
-
-    /// <summary>
-    /// Enables the custom spinner and persists the toggle.
-    /// </summary>
-    private void OnCustomToggled(object? sender, RoutedEventArgs e)
-    {
-        _settings.CustomOn = CustomToggle.IsChecked == true;
-        CustomValue.IsEnabled = _settings.CustomOn;
-        Save();
     }
 
     /// <summary>
@@ -197,9 +186,34 @@ public partial class MainWindow : Window
         foreach (var t in group.Children.OfType<ToggleButton>())
             t.IsChecked = t == btn;
         var value = (string)btn.Tag!;
-        if (group.Name == "PresetGroup") _preset = Enum.Parse<Preset>(value, ignoreCase: true);
+        if (group.Name == "PresetGroup")
+        {
+            _settings.CustomOn = value == "custom";
+            if (!_settings.CustomOn) _preset = Enum.Parse<Preset>(value, ignoreCase: true);
+            SettingsButton.IsVisible = _settings.CustomOn;
+        }
         else { _format = value; SyncCustomRange(); }
         Save();
+    }
+
+    /// <summary>
+    /// Opens the custom quality/resize settings page.
+    /// </summary>
+    private void OnSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        MainPage.IsVisible = false;
+        SettingsPage.IsVisible = true;
+        BackButton.IsVisible = true;
+    }
+
+    /// <summary>
+    /// Returns from the settings page to the main page.
+    /// </summary>
+    private void OnBackClick(object? sender, RoutedEventArgs e)
+    {
+        SettingsPage.IsVisible = false;
+        BackButton.IsVisible = false;
+        MainPage.IsVisible = true;
     }
 
     /// <summary>
