@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private readonly Stopwatch _sw = new();
     private readonly List<string> _errors = [];
     private int _done, _total;
+    private string? _lastOutDir;       // last batch's output folder, for the Open folder button
     private long _bytesDone, _bytesTotal;
     private readonly DispatcherTimer _etaTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly IBrush _normalBorder, _accentBorder;
@@ -177,9 +178,20 @@ public partial class MainWindow : Window
         }
         if (outDir != null)
         {
+            _lastOutDir = outDir;
             DoneText.Text = _cancelled ? $"Cancelled — partial output in {outDir}" : $"Done — {outDir}";
             DonePanel.IsVisible = true;
         }
+    }
+
+    /// <summary>
+    /// Opens the last output folder in the OS file manager.
+    /// </summary>
+    private void OnOpenFolderClick(object? sender, RoutedEventArgs e)
+    {
+        if (_lastOutDir == null) return;
+        try { Process.Start(new ProcessStartInfo(_lastOutDir) { UseShellExecute = true }); }
+        catch (Exception ex) { ShowNotice("Could not open folder: " + ex.Message); }
     }
 
     /// <summary>
