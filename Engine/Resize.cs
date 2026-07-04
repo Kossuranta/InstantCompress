@@ -8,8 +8,11 @@ public enum ResizeMode
     /// <summary>Scale so the longer of width/height equals <see cref="ResizeSettings.MaxDim"/>.</summary>
     LongestSide,
 
-    /// <summary>Scale to fit within <see cref="ResizeSettings.MaxWidth"/> x <see cref="ResizeSettings.MaxHeight"/>.</summary>
-    WidthAndHeight,
+    /// <summary>
+    /// Cap <see cref="ResizeSettings.MaxWidth"/> and/or <see cref="ResizeSettings.MaxHeight"/> (0 = uncapped);
+    /// at least one must be set.
+    /// </summary>
+    Dimensions,
 
     /// <summary>Scale both dimensions by <see cref="ResizeSettings.Percent"/>.</summary>
     Percentage,

@@ -127,9 +127,10 @@ public static class SelfCheck
     }
 
     /// <summary>
-    /// Verifies <see cref="Compressor.TargetSize"/> for all three <see cref="ResizeMode"/>s: longest-side scales
-    /// to the longer edge, width-and-height fits within a box (aspect preserved), percentage scales both edges,
-    /// and an already-small image is left alone (never upscaled).
+    /// Verifies <see cref="Compressor.TargetSize"/> for every <see cref="ResizeMode"/>: longest-side scales to
+    /// the longer edge; Dimensions with both width and height fits within the box (aspect preserved), and with
+    /// only one set caps just that edge; percentage scales both edges; an already-small image is left alone
+    /// (never upscaled).
     /// </summary>
     private static bool ResizeModeOk()
     {
@@ -138,8 +139,14 @@ public static class SelfCheck
         if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.LongestSide, 200, 0, 0, 100))
             != (200, 100))
             return false;
-        if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.WidthAndHeight, 0, 100, 100, 100))
+        if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.Dimensions, 0, 100, 100, 100))
             != (100, 50))
+            return false;
+        if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.Dimensions, 0, 100, 0, 100))
+            != (100, 50)) // width-only: height follows proportionally
+            return false;
+        if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.Dimensions, 0, 0, 100, 100))
+            != (200, 100)) // height-only: width follows proportionally
             return false;
         return Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.Percentage, 0, 0, 0, 25))
             == (250, 125);

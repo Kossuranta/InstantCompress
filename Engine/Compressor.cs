@@ -289,9 +289,16 @@ public static partial class Compressor
     internal static (int Width, int Height)? TargetSize(int srcWidth, int srcHeight, ResizeSettings resize)
     {
         if (!resize.Enabled) return null;
+        bool capW = resize.MaxWidth > 0, capH = resize.MaxHeight > 0;
         double scale = resize.Mode switch
         {
-            ResizeMode.WidthAndHeight => Math.Min((double)resize.MaxWidth / srcWidth, (double)resize.MaxHeight / srcHeight),
+            // Dimensions: whichever of width/height is capped constrains the scale; if both are,
+            // the smaller (more restrictive) scale wins so the image fits inside both.
+            ResizeMode.Dimensions when capW && capH =>
+                Math.Min((double)resize.MaxWidth / srcWidth, (double)resize.MaxHeight / srcHeight),
+            ResizeMode.Dimensions when capW => (double)resize.MaxWidth / srcWidth,
+            ResizeMode.Dimensions when capH => (double)resize.MaxHeight / srcHeight,
+            ResizeMode.Dimensions => 1, // neither capped: no-op
             ResizeMode.Percentage => resize.Percent / 100.0,
             _ => (double)resize.MaxDim / Math.Max(srcWidth, srcHeight), // LongestSide
         };

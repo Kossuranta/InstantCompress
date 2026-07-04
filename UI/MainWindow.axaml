@@ -26,6 +26,17 @@
       <Setter Property="CornerRadius" Value="7" />
       <Setter Property="FontSize" Value="13" />
     </Style>
+    <!-- Section box for the Custom settings page -->
+    <Style Selector="Border.box">
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource Faint}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="16,12" />
+    </Style>
+    <!-- Shared width for every Custom-settings numeric field, so they line up -->
+    <Style Selector="NumericUpDown.field">
+      <Setter Property="Width" Value="120" />
+    </Style>
   </Window.Styles>
 
   <Panel>
@@ -111,41 +122,48 @@
   <StackPanel x:Name="SettingsPage" Margin="24,20" Spacing="16" IsVisible="False">
     <TextBlock Text="Custom settings" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <TextBlock Text="Quality" VerticalAlignment="Center" />
-      <Slider x:Name="CustomSlider" Minimum="1" Maximum="100" Width="140" VerticalAlignment="Center"
-              ValueChanged="OnCustomSliderChanged" />
-      <NumericUpDown x:Name="CustomValue" Minimum="1" Maximum="100" Increment="1" Width="90"
-                     FormatString="0" ValueChanged="OnCustomValueChanged" />
-    </StackPanel>
+    <Border Classes="box" HorizontalAlignment="Center">
+      <StackPanel Spacing="10">
+        <TextBlock Text="Quality" FontWeight="Bold" HorizontalAlignment="Center" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Slider x:Name="CustomSlider" Minimum="1" Maximum="100" Width="140" VerticalAlignment="Center"
+                  ValueChanged="OnCustomSliderChanged" />
+          <NumericUpDown x:Name="CustomValue" Classes="field" Minimum="1" Maximum="100" Increment="1"
+                         ShowButtonSpinner="False" VerticalAlignment="Center"
+                         FormatString="0" ValueChanged="OnCustomValueChanged" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
 
-    <TextBlock Text="Resize by" FontSize="12" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+    <Border Classes="box" HorizontalAlignment="Center">
+      <StackPanel Spacing="10">
+        <TextBlock Text="Resize" FontWeight="Bold" HorizontalAlignment="Center" />
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <RadioButton x:Name="ResizeModeLongest" GroupName="ResizeMode" Content="Longest side" Tag="longest"
-                   VerticalAlignment="Center" Click="OnResizeModeClick" />
-      <NumericUpDown x:Name="ResizeValue" Minimum="16" Maximum="20000" Increment="128" Width="110"
-                     FormatString="0" ValueChanged="OnResizeValueChanged" />
-      <TextBlock Text="px" VerticalAlignment="Center" />
-    </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <CheckBox x:Name="MaxWidthToggle" Content="Max width" Width="120" VerticalAlignment="Center"
+                    IsCheckedChanged="OnMaxWidthToggled" />
+          <NumericUpDown x:Name="MaxWidthValue" Classes="field" Minimum="16" Maximum="20000" Increment="64"
+                         FormatString="0" ValueChanged="OnMaxWidthValueChanged" />
+          <TextBlock Text="px" VerticalAlignment="Center" />
+        </StackPanel>
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <RadioButton x:Name="ResizeModeWidthHeight" GroupName="ResizeMode" Content="Width &amp; height" Tag="widthheight"
-                   VerticalAlignment="Center" Click="OnResizeModeClick" />
-      <NumericUpDown x:Name="MaxWidthValue" Minimum="16" Maximum="20000" Increment="64" Width="90"
-                     FormatString="0" ValueChanged="OnMaxWidthValueChanged" />
-      <TextBlock Text="×" VerticalAlignment="Center" />
-      <NumericUpDown x:Name="MaxHeightValue" Minimum="16" Maximum="20000" Increment="64" Width="90"
-                     FormatString="0" ValueChanged="OnMaxHeightValueChanged" />
-    </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <CheckBox x:Name="MaxHeightToggle" Content="Max height" Width="120" VerticalAlignment="Center"
+                    IsCheckedChanged="OnMaxHeightToggled" />
+          <NumericUpDown x:Name="MaxHeightValue" Classes="field" Minimum="16" Maximum="20000" Increment="64"
+                         FormatString="0" ValueChanged="OnMaxHeightValueChanged" />
+          <TextBlock Text="px" VerticalAlignment="Center" />
+        </StackPanel>
 
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <RadioButton x:Name="ResizeModePercentage" GroupName="ResizeMode" Content="Percentage" Tag="percentage"
-                   VerticalAlignment="Center" Click="OnResizeModeClick" />
-      <NumericUpDown x:Name="ScalePercentValue" Minimum="1" Maximum="100" Increment="5" Width="90"
-                     FormatString="0" ValueChanged="OnScalePercentValueChanged" />
-      <TextBlock Text="%" VerticalAlignment="Center" />
-    </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <CheckBox x:Name="PercentageToggle" Content="Percentage" Width="120" VerticalAlignment="Center"
+                    IsCheckedChanged="OnPercentageToggled" />
+          <NumericUpDown x:Name="ScalePercentValue" Classes="field" Minimum="1" Maximum="100" Increment="5"
+                         FormatString="0" ValueChanged="OnScalePercentValueChanged" />
+          <TextBlock Text="%" VerticalAlignment="Center" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
   </StackPanel>
 
   <ToggleButton x:Name="ThemeToggle" Padding="12,5"

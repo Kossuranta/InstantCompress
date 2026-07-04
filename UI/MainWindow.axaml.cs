@@ -32,7 +32,8 @@ public partial class MainWindow : Window
     private readonly IBrush _normalBorder, _accentBorder;
     private readonly Settings _settings = SettingsStore.Load();
     private bool _loading;             // suppress persistence while applying loaded settings to the UI
-    private bool _syncingCustom;       // guard against the slider/spinner re-triggering each other
+    private bool _syncingCustom;       // guard against the quality slider/spinner re-triggering each other
+    private bool _syncingResize;       // guard while enforcing width/height <-> percentage exclusivity
     private bool _initialized;         // guards against XAML init-time ValueChanged firing before all fields exist
 
     /// <summary>
@@ -107,26 +108,26 @@ public partial class MainWindow : Window
         ResizeToggle.IsVisible = !_settings.CustomOn;
         SyncCustomRange();
         ResizeToggle.IsChecked = _settings.ResizeOn;
-        ResizeValue.Value = _settings.MaxDim;
+        MaxWidthToggle.IsChecked = _settings.MaxWidthOn;
         MaxWidthValue.Value = _settings.MaxWidth;
+        MaxHeightToggle.IsChecked = _settings.MaxHeightOn;
         MaxHeightValue.Value = _settings.MaxHeight;
+        PercentageToggle.IsChecked = _settings.PercentageOn;
         ScalePercentValue.Value = _settings.ScalePercent;
-        ResizeModeLongest.IsChecked = _settings.ResizeMode == "longest";
-        ResizeModeWidthHeight.IsChecked = _settings.ResizeMode == "widthheight";
-        ResizeModePercentage.IsChecked = _settings.ResizeMode == "percentage";
-        UpdateResizeModeEnabled();
+        UpdateResizeFieldsEnabled();
         _loading = false;
     }
 
     /// <summary>
-    /// Enables only the value control(s) for the selected resize mode; the rest are greyed out.
+    /// Enables each resize field only while its own checkbox is on. The checkboxes themselves always stay
+    /// clickable — width/height vs. percentage exclusivity is enforced by auto-unchecking the other side
+    /// (see <see cref="UncheckPercentage"/>/<see cref="UncheckWidthAndHeight"/>), not by disabling them.
     /// </summary>
-    private void UpdateResizeModeEnabled()
+    private void UpdateResizeFieldsEnabled()
     {
-        ResizeValue.IsEnabled = _settings.ResizeMode == "longest";
-        MaxWidthValue.IsEnabled = _settings.ResizeMode == "widthheight";
-        MaxHeightValue.IsEnabled = _settings.ResizeMode == "widthheight";
-        ScalePercentValue.IsEnabled = _settings.ResizeMode == "percentage";
+        MaxWidthValue.IsEnabled = _settings.MaxWidthOn;
+        MaxHeightValue.IsEnabled = _settings.MaxHeightOn;
+        ScalePercentValue.IsEnabled = _settings.PercentageOn;
     }
 
     /// <summary>
@@ -189,7 +190,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Persists the resize toggle: caps the longest side to the active preset's (or Custom's) max size.
+    /// Persists the resize toggle: caps the longest side to the active preset's max size (Low/Medium/High only).
     /// </summary>
     private void OnResizeToggled(object? sender, RoutedEventArgs e)
     {
@@ -198,27 +199,61 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Stores the max-dimension cap and persists it.
+    /// Toggles the width cap; turning it on turns percentage off (they're mutually exclusive).
     /// </summary>
-    private void OnResizeValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    private void OnMaxWidthToggled(object? sender, RoutedEventArgs e)
     {
-        if (_loading) return;
-        _settings.MaxDim = (int)(ResizeValue.Value ?? _settings.MaxDim);
+        if (!_initialized || _syncingResize) return;
+        _settings.MaxWidthOn = MaxWidthToggle.IsChecked == true;
+        if (_settings.MaxWidthOn) UncheckPercentage();
+        UpdateResizeFieldsEnabled();
         Save();
     }
 
     /// <summary>
-    /// Switches which resize mode Custom uses, greys out the other modes' inputs, and persists the choice.
+    /// Toggles the height cap; turning it on turns percentage off (they're mutually exclusive).
     /// </summary>
-    private void OnResizeModeClick(object? sender, RoutedEventArgs e)
+    private void OnMaxHeightToggled(object? sender, RoutedEventArgs e)
     {
-        _settings.ResizeMode = (string)((RadioButton)sender!).Tag!;
-        UpdateResizeModeEnabled();
+        if (!_initialized || _syncingResize) return;
+        _settings.MaxHeightOn = MaxHeightToggle.IsChecked == true;
+        if (_settings.MaxHeightOn) UncheckPercentage();
+        UpdateResizeFieldsEnabled();
         Save();
     }
 
     /// <summary>
-    /// Stores the width cap for the "width & height" resize mode and persists it.
+    /// Toggles percentage scaling; turning it on turns width/height off (they're mutually exclusive).
+    /// </summary>
+    private void OnPercentageToggled(object? sender, RoutedEventArgs e)
+    {
+        if (!_initialized || _syncingResize) return;
+        _settings.PercentageOn = PercentageToggle.IsChecked == true;
+        if (_settings.PercentageOn) UncheckWidthAndHeight();
+        UpdateResizeFieldsEnabled();
+        Save();
+    }
+
+    /// <summary>
+    /// Unchecks the percentage toggle without re-entering its handler.
+    /// </summary>
+    private void UncheckPercentage()
+    {
+        _settings.PercentageOn = false;
+        _syncingResize = true; PercentageToggle.IsChecked = false; _syncingResize = false;
+    }
+
+    /// <summary>
+    /// Unchecks both the width and height toggles without re-entering their handlers.
+    /// </summary>
+    private void UncheckWidthAndHeight()
+    {
+        _settings.MaxWidthOn = false; _settings.MaxHeightOn = false;
+        _syncingResize = true; MaxWidthToggle.IsChecked = false; MaxHeightToggle.IsChecked = false; _syncingResize = false;
+    }
+
+    /// <summary>
+    /// Stores the width cap and persists it.
     /// </summary>
     private void OnMaxWidthValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
@@ -228,7 +263,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Stores the height cap for the "width & height" resize mode and persists it.
+    /// Stores the height cap and persists it.
     /// </summary>
     private void OnMaxHeightValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
@@ -238,7 +273,7 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Stores the scale percentage for the "percentage" resize mode and persists it.
+    /// Stores the scale percentage and persists it.
     /// </summary>
     private void OnScalePercentValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
@@ -347,19 +382,23 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Builds this run's resize settings: off if the toggle is off, the active preset's longest-side cap for
-    /// Low/Medium/High, or Custom's chosen mode (longest side / width &amp; height / percentage).
+    /// Builds this run's resize settings: for Low/Medium/High, the active preset's longest-side cap, gated by
+    /// the main page's resize toggle; for Custom, whichever of width/height/percentage the user checked
+    /// (all off means no resize).
     /// </summary>
     private ResizeSettings BuildResize(PresetSettings preset)
     {
-        if (!_settings.ResizeOn) return ResizeSettings.Off;
-        if (!_settings.CustomOn) return new ResizeSettings(true, ResizeMode.LongestSide, preset.MaxDim, 0, 0, 100);
-        return _settings.ResizeMode switch
-        {
-            "widthheight" => new ResizeSettings(true, ResizeMode.WidthAndHeight, 0, _settings.MaxWidth, _settings.MaxHeight, 100),
-            "percentage" => new ResizeSettings(true, ResizeMode.Percentage, 0, 0, 0, _settings.ScalePercent),
-            _ => new ResizeSettings(true, ResizeMode.LongestSide, _settings.MaxDim, 0, 0, 100),
-        };
+        if (!_settings.CustomOn)
+            return _settings.ResizeOn
+                ? new ResizeSettings(true, ResizeMode.LongestSide, preset.MaxDim, 0, 0, 100)
+                : ResizeSettings.Off;
+        if (_settings.PercentageOn)
+            return new ResizeSettings(true, ResizeMode.Percentage, 0, 0, 0, _settings.ScalePercent);
+        if (_settings.MaxWidthOn || _settings.MaxHeightOn)
+            return new ResizeSettings(true, ResizeMode.Dimensions, 0,
+                _settings.MaxWidthOn ? _settings.MaxWidth : 0,
+                _settings.MaxHeightOn ? _settings.MaxHeight : 0, 100);
+        return ResizeSettings.Off;
     }
 
     /// <summary>
@@ -384,9 +423,10 @@ public partial class MainWindow : Window
         _sw.Restart();
         _etaTimer.Start();
 
-        // captured at drop: custom quality/size override the preset when enabled
+        // captured at drop: custom quality overrides the preset when enabled (MaxDim unused here: Custom's
+        // resize goes through BuildResize, not PresetSettings.MaxDim)
         (string fmt, PresetSettings preset) = (_format, _settings.CustomOn
-            ? new PresetSettings(_settings.CustomJpg, _settings.CustomJpg, _settings.CustomPng, _settings.MaxDim)
+            ? new PresetSettings(_settings.CustomJpg, _settings.CustomJpg, _settings.CustomPng, 0)
             : Presets.Values[_preset]);
         ResizeSettings resize = BuildResize(preset);
         string? outDir = null;
