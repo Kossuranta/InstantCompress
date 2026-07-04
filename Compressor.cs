@@ -72,8 +72,12 @@ public static class Compressor
                                        Action<Progress> onProgress, Action<string> onError,
                                        CancellationToken ct)
     {
-        string outDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(files[0]))!,
+        string baseDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(files[0]))!,
                                   $"compressed_{DateTime.Now:yyyyMMdd_HHmmss}");
+        // Two runs in the same second would otherwise reuse one folder and mix/overwrite outputs.
+        // ponytail: tiny TOCTOU window between Exists and Create — single-user desktop app, not worth a lock.
+        string outDir = baseDir;
+        for (var n = 1; Directory.Exists(outDir); n++) outDir = $"{baseDir}_{n}";
         Directory.CreateDirectory(outDir); // throws: aborts whole batch
 
         long[] sizes = files.Select(f => { try { return new FileInfo(f).Length; } catch { return 0L; } }).ToArray();
