@@ -25,7 +25,9 @@ public static class SettingsStore
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "InstantCompress", "settings.json");
 
-    /// <summary>Reads settings, or returns defaults if the file is missing or unreadable.</summary>
+    /// <summary>
+    /// Reads settings, or returns defaults if the file is missing or unreadable.
+    /// </summary>
     public static Settings Load()
     {
         try
@@ -37,7 +39,9 @@ public static class SettingsStore
         return new Settings();
     }
 
-    /// <summary>Writes settings; swallows IO errors (persistence is a convenience, not correctness).</summary>
+    /// <summary>
+    /// Writes settings; swallows IO errors (persistence is a convenience, not correctness).
+    /// </summary>
     public static void Save(Settings s)
     {
         try

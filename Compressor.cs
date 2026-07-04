@@ -39,7 +39,9 @@ public static class Compressor
     /// </summary>
     public static readonly string[] SupportedExts = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
 
-    /// <summary>Whether <paramref name="path"/> has a supported image extension.</summary>
+    /// <summary>
+    /// Whether <paramref name="path"/> has a supported image extension.
+    /// </summary>
     public static bool IsSupported(string path) =>
         SupportedExts.Contains(Path.GetExtension(path).ToLowerInvariant());
 
@@ -65,14 +67,20 @@ public static class Compressor
     /// </summary>
     public readonly record struct Progress(int Done, int Total, string CurrentFile, long BytesDone, long BytesTotal);
 
-    /// <summary>Outcome of one file. Skipped = never processed (batch was cancelled before reaching it).</summary>
+    /// <summary>
+    /// Outcome of one file. Skipped = never processed (batch was cancelled before reaching it).
+    /// </summary>
     public enum FileStatus { Ok, Failed, Skipped }
 
-    /// <summary>Per-file result for the results view.</summary>
+    /// <summary>
+    /// Per-file result for the results view.
+    /// </summary>
     public readonly record struct FileResult(
         string Input, string? Output, long OriginalBytes, long CompressedBytes, FileStatus Status, string? Error);
 
-    /// <summary>What a batch produced: the output folder and one <see cref="FileResult"/> per input.</summary>
+    /// <summary>
+    /// What a batch produced: the output folder and one <see cref="FileResult"/> per input.
+    /// </summary>
     public sealed record BatchResult(string OutDir, IReadOnlyList<FileResult> Files);
 
     /// <summary>

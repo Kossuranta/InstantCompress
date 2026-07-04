@@ -82,14 +82,18 @@ public partial class MainWindow : Window
         _loading = false;
     }
 
-    /// <summary>Checks the toggle whose Tag matches <paramref name="tag"/>, unchecks the rest.</summary>
+    /// <summary>
+    /// Checks the toggle whose Tag matches <paramref name="tag"/>, unchecks the rest.
+    /// </summary>
     private static void SelectInGroup(StackPanel group, string tag)
     {
         foreach (var t in group.Children.OfType<ToggleButton>())
             t.IsChecked = (string)t.Tag! == tag;
     }
 
-    /// <summary>Points the custom-value spinner at the range/value for the current format (JPG 1-100, PNG 0-9).</summary>
+    /// <summary>
+    /// Points the custom-value spinner at the range/value for the current format (JPG 1-100, PNG 0-9).
+    /// </summary>
     private void SyncCustomRange()
     {
         bool prev = _loading; _loading = true; // range/value churn here must not persist
@@ -99,7 +103,9 @@ public partial class MainWindow : Window
         _loading = prev;
     }
 
-    /// <summary>Persists the current UI choices.</summary>
+    /// <summary>
+    /// Persists the current UI choices.
+    /// </summary>
     private void Save()
     {
         if (_loading) return;
@@ -108,7 +114,9 @@ public partial class MainWindow : Window
         SettingsStore.Save(_settings);
     }
 
-    /// <summary>Enables the custom spinner and persists the toggle.</summary>
+    /// <summary>
+    /// Enables the custom spinner and persists the toggle.
+    /// </summary>
     private void OnCustomToggled(object? sender, RoutedEventArgs e)
     {
         _settings.CustomOn = CustomToggle.IsChecked == true;
@@ -116,7 +124,9 @@ public partial class MainWindow : Window
         Save();
     }
 
-    /// <summary>Stores the custom quality/level for the active format and persists it.</summary>
+    /// <summary>
+    /// Stores the custom quality/level for the active format and persists it.
+    /// </summary>
     private void OnCustomValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
         if (_loading) return;
@@ -125,7 +135,9 @@ public partial class MainWindow : Window
         Save();
     }
 
-    /// <summary>Enables the resize spinner and persists the toggle.</summary>
+    /// <summary>
+    /// Enables the resize spinner and persists the toggle.
+    /// </summary>
     private void OnResizeToggled(object? sender, RoutedEventArgs e)
     {
         _settings.ResizeOn = ResizeToggle.IsChecked == true;
@@ -133,7 +145,9 @@ public partial class MainWindow : Window
         Save();
     }
 
-    /// <summary>Stores the max-dimension cap and persists it.</summary>
+    /// <summary>
+    /// Stores the max-dimension cap and persists it.
+    /// </summary>
     private void OnResizeValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
         if (_loading) return;
@@ -320,11 +334,15 @@ public partial class MainWindow : Window
         return string.Join("\n", lines);
     }
 
-    /// <summary>Compressed-to-original ratio as a percentage, or "—" when the original size is unknown.</summary>
+    /// <summary>
+    /// Compressed-to-original ratio as a percentage, or "—" when the original size is unknown.
+    /// </summary>
     private static string Ratio(Compressor.FileResult r) =>
         r.OriginalBytes > 0 ? $"{100.0 * r.CompressedBytes / r.OriginalBytes:0}%" : "—";
 
-    /// <summary>Human-readable byte size (B/KB/MB/GB).</summary>
+    /// <summary>
+    /// Human-readable byte size (B/KB/MB/GB).
+    /// </summary>
     private static string HumanBytes(long b)
     {
         string[] u = ["B", "KB", "MB", "GB"];
