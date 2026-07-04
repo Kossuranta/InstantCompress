@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="InstantCompress.MainWindow"
         Icon="/Assets/icon.ico"
-        Title="InstantCompress"
+        Title="Instant Compress"
         Width="600" Height="540" CanResize="False"
         WindowStartupLocation="CenterScreen">
 
@@ -30,25 +30,34 @@
 
   <Panel>
   <StackPanel Margin="24,20" Spacing="12">
-    <TextBlock Text="InstantCompress" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" />
-    <TextBlock Text="Drop images. Get smaller ones." Foreground="{StaticResource Muted}"
-               HorizontalAlignment="Center" Margin="0,-8,0,0" />
+    <TextBlock Text="Instant Compress" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" />
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
-      <Border Classes="seg">
-        <StackPanel x:Name="PresetGroup" Orientation="Horizontal" Spacing="3">
-          <ToggleButton Content="Small" Tag="low" Click="OnSegClick" />
-          <ToggleButton Content="Balanced" Tag="medium" IsChecked="True" Click="OnSegClick" />
-          <ToggleButton Content="Best" Tag="high" Click="OnSegClick" />
-        </StackPanel>
-      </Border>
-      <Border Classes="seg">
-        <StackPanel x:Name="FormatGroup" Orientation="Horizontal" Spacing="3">
-          <ToggleButton Content="JPG" Tag="jpg" IsChecked="True" Click="OnSegClick" />
-          <ToggleButton Content="PNG" Tag="png" Click="OnSegClick" />
-          <ToggleButton Content="WebP" Tag="webp" Click="OnSegClick" />
-        </StackPanel>
-      </Border>
+      <StackPanel Spacing="4">
+        <TextBlock Text="Compression amount" FontSize="12" Foreground="{StaticResource Muted}"
+                   HorizontalAlignment="Center" />
+        <Border Classes="seg">
+          <StackPanel x:Name="PresetGroup" Orientation="Horizontal" Spacing="3">
+            <ToggleButton Content="Low" Tag="high" Click="OnSegClick" />
+            <ToggleButton Content="Medium" Tag="medium" IsChecked="True" Click="OnSegClick" />
+            <ToggleButton Content="High" Tag="low" Click="OnSegClick" />
+          </StackPanel>
+        </Border>
+        <TextBlock Text="Higher compression means lower image quality." FontSize="11"
+                   Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
+                   TextWrapping="Wrap" TextAlignment="Center" MaxWidth="160" />
+      </StackPanel>
+      <StackPanel Spacing="4">
+        <TextBlock Text="Result file type" FontSize="12" Foreground="{StaticResource Muted}"
+                   HorizontalAlignment="Center" />
+        <Border Classes="seg">
+          <StackPanel x:Name="FormatGroup" Orientation="Horizontal" Spacing="3">
+            <ToggleButton Content="JPG" Tag="jpg" IsChecked="True" Click="OnSegClick" />
+            <ToggleButton Content="PNG" Tag="png" Click="OnSegClick" />
+            <ToggleButton Content="WebP" Tag="webp" Click="OnSegClick" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
     </StackPanel>
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,-4,0,0">
