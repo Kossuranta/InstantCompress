@@ -42,10 +42,12 @@ Key cross-file mechanics:
 
 ## Style
 
+- When told to "fix code style" for something, add the corresponding rule to this section.
 - XML doc comments on public/most members. `<summary>` is always the three-line form; `<param>`/`<returns>` may be single-line when short.
 - Use concrete types instead of `var` when the type is not apparent from the right-hand side.
 - Comment only when necessary, 2 rows max, and assume an experienced reader. If a longer explanation is needed, extract a method with a `<summary>` instead.
 - Local functions: multiline body, declared after the enclosing method's main logic (after the `return`, not before).
+- `for`/`foreach` loops: multiline body, never a statement on the same line as the header.
 
 ## Notes
 
