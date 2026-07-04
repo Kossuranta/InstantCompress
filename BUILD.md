@@ -50,7 +50,10 @@ Verified: publish + `--selfcheck` pass. No app.manifest is shipped; default DPI 
 Verified to publish (compile + restore) from Windows; runtime notes:
 
 - Native Skia libs are bundled: `HarfBuzzSharp.NativeAssets.Linux` comes transitively via `Avalonia.Skia`, and `SkiaSharp.NativeAssets.Linux` 4.148.0 is referenced explicitly (Avalonia only pins the 3.119 Linux native transitively — see `## Package versions`), so `libSkiaSharp.so` / `libHarfBuzzSharp.so` are embedded in the single file via `IncludeNativeLibrariesForSelfExtract`. Keep the explicit reference at the same version as the managed `SkiaSharp` package to avoid a managed/native ABI split.
-- **Runtime untested on Linux:** publishes (compile + restore) from Windows and the Windows self-check passes, but the managed 4.148.0 / native ABI pairing has not been exercised on an actual Linux box. Run `./InstantCompress --selfcheck` (exit 0) there before trusting it.
+- **Runtime untested on Linux (Avalonia 12 / SkiaSharp 4.148.0 upgrade):** publishes (compile + restore) from Windows and the Windows self-check passes, but the managed 4.148.0 / native ABI pairing has **not** been exercised on an actual Linux box. This is the one open verification item for the upgrade.
+  - Attempted via WSL2 but it would not boot: `HCS_E_HYPERV_NOT_INSTALLED` — "Virtual Machine Platform" component and/or BIOS virtualization (SVM/VT-x) disabled. Enable virtualization in BIOS + run `wsl.exe --install --no-distribution` (admin) + reboot.
+  - The installed WSL distro is Ubuntu 20.04 (glibc 2.31); .NET 10 self-contained may need newer glibc, so a 22.04/24.04 target is a cleaner test.
+  - To test: `dotnet publish -c Release -r linux-x64`, then in Linux `chmod +x InstantCompress && ./InstantCompress --selfcheck; echo $?` — exit `0` confirms the SkiaSharp 4.148 native ABI works. `--selfcheck` is headless (no X11/fontconfig needed).
 - An X11 desktop is required (`libX11`, `libICE`, `libSM`).
 - `fontconfig` and at least one font must be installed (the Skia/HarfBuzz text stack needs them), e.g. `apt install fontconfig fonts-dejavu-core`.
 - You may need `chmod +x InstantCompress` after copying.
