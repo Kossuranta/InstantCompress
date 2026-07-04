@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>InstantCompress</AssemblyName>
+    <RootNamespace>InstantCompress</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Avalonia needs this for OLE drag&drop on Windows -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <!-- Publish props only when a RID is given, so plain `dotnet build`/`dotnet run`
+       (no RID) still works. NETSDK1097 fires if PublishSingleFile is set RID-less. -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed> <!-- Avalonia + trimming is fragile -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.18" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
+    <!-- Same version Avalonia 11.3.18 binds against (Avalonia.Skia nuspec).
+         Do NOT bump to SkiaSharp 3.x — Avalonia 11.x targets the 2.88 ABI.
+         Linux natives (libSkiaSharp.so) come transitively via Avalonia.Skia ->
+         SkiaSharp.NativeAssets.Linux. -->
+    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+  </ItemGroup>
+</Project>

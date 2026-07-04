@@ -1,0 +1,83 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="InstantCompress.MainWindow"
+        Title="InstantCompress"
+        Width="600" Height="540" CanResize="False"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.Resources>
+    <!-- theme-neutral grays/tints so light and dark both read fine without per-theme dictionaries -->
+    <SolidColorBrush x:Key="Muted" Color="#8B939E" />
+    <SolidColorBrush x:Key="Faint" Color="#55808080" />
+    <SolidColorBrush x:Key="Accent" Color="#3B82F6" />
+  </Window.Resources>
+
+  <Window.Styles>
+    <!-- ponytail: hand-rolled segmented control; Fluent has none -->
+    <Style Selector="Border.seg">
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource Faint}" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="3" />
+    </Style>
+    <Style Selector="Border.seg ToggleButton">
+      <Setter Property="Padding" Value="14,5" />
+      <Setter Property="CornerRadius" Value="7" />
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+  </Window.Styles>
+
+  <StackPanel Margin="24,20" Spacing="12">
+    <TextBlock Text="InstantCompress" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" />
+    <TextBlock Text="Drop images. Get smaller ones." Foreground="{StaticResource Muted}"
+               HorizontalAlignment="Center" Margin="0,-8,0,0" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+      <Border Classes="seg">
+        <StackPanel x:Name="PresetGroup" Orientation="Horizontal" Spacing="3">
+          <ToggleButton Content="low" Tag="low" IsChecked="True" Click="OnSegClick" />
+          <ToggleButton Content="medium" Tag="medium" Click="OnSegClick" />
+          <ToggleButton Content="high" Tag="high" Click="OnSegClick" />
+        </StackPanel>
+      </Border>
+      <Border Classes="seg">
+        <StackPanel x:Name="FormatGroup" Orientation="Horizontal" Spacing="3">
+          <ToggleButton Content="JPG" Tag="jpg" IsChecked="True" Click="OnSegClick" />
+          <ToggleButton Content="PNG" Tag="png" Click="OnSegClick" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <!-- ponytail: solid border; Avalonia Border has no dash support, a Rectangle overlay isn't worth it -->
+    <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220" CornerRadius="14"
+            BorderThickness="2" BorderBrush="{StaticResource Faint}" Background="#10808080">
+      <Panel>
+        <StackPanel x:Name="IdlePanel" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="10">
+          <Path Data="M21,15 v4 a2,2 0 0 1 -2,2 H5 a2,2 0 0 1 -2,-2 v-4 M7,10 L12,15 L17,10 M12,15 L12,3"
+                Stroke="{StaticResource Muted}" StrokeThickness="1.5"
+                StrokeLineCap="Round" StrokeJoin="Round"
+                Width="40" Height="40" Stretch="Uniform" HorizontalAlignment="Center" />
+          <TextBlock Text="Drag images here" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel x:Name="BusyPanel" IsVisible="False" VerticalAlignment="Center" Spacing="10" Margin="32,0">
+          <TextBlock x:Name="CurrentFileText" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" />
+          <ProgressBar x:Name="Bar" Minimum="0" Height="8" />
+          <TextBlock x:Name="CounterText" FontSize="13" HorizontalAlignment="Center" />
+          <Button Content="Cancel" HorizontalAlignment="Center" Click="OnCancelClick" />
+        </StackPanel>
+      </Panel>
+    </Border>
+
+    <Border x:Name="DonePanel" IsVisible="False" Background="#2216A34A" CornerRadius="10" Padding="12,10">
+      <SelectableTextBlock x:Name="DoneText" TextWrapping="Wrap" FontSize="13" />
+    </Border>
+
+    <Border x:Name="ErrorPanel" IsVisible="False" Background="#22DC2626" CornerRadius="10"
+            Padding="12,10" MaxHeight="110">
+      <ScrollViewer>
+        <TextBlock x:Name="ErrorsText" TextWrapping="Wrap" FontSize="13" />
+      </ScrollViewer>
+    </Border>
+  </StackPanel>
+</Window>
