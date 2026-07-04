@@ -101,6 +101,7 @@ public partial class MainWindow : Window
         SelectInGroup(PresetGroup, _settings.CustomOn ? "custom" : _settings.Preset);
         SelectInGroup(FormatGroup, _settings.Format);
         SettingsButton.IsVisible = _settings.CustomOn;
+        ResizeToggle.IsVisible = !_settings.CustomOn;
         SyncCustomRange();
         ResizeToggle.IsChecked = _settings.ResizeOn;
         ResizeValue.Value = _settings.MaxDim;
@@ -189,6 +190,7 @@ public partial class MainWindow : Window
             _settings.CustomOn = value == "custom";
             if (!_settings.CustomOn) _preset = Enum.Parse<Preset>(value, ignoreCase: true);
             SettingsButton.IsVisible = _settings.CustomOn;
+            ResizeToggle.IsVisible = !_settings.CustomOn;
         }
         else { _format = value; SyncCustomRange(); }
         Save();

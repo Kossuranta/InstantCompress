@@ -12,7 +12,7 @@ public sealed class Settings
     public bool CustomOn { get; set; }
     public int CustomJpg { get; set; } = 80; // 1-100
     public int CustomPng { get; set; } = 6;  // 0-9
-    public bool ResizeOn { get; set; }
+    public bool ResizeOn { get; set; } = true;
     public int MaxDim { get; set; } = 2048;   // longest-side cap in px when ResizeOn
     public string? Theme { get; set; }        // "light" / "dark", or null to follow the OS theme
 }

@@ -49,6 +49,8 @@
                    TextWrapping="Wrap" TextAlignment="Center" MaxWidth="160" />
         <Button x:Name="SettingsButton" Content="Settings" FontSize="11" Padding="10,4" IsVisible="False"
                 HorizontalAlignment="Center" Click="OnSettingsClick" ToolTip.Tip="Custom quality &amp; resize" />
+        <CheckBox x:Name="ResizeToggle" Content="Allow resizing images" FontSize="11"
+                  HorizontalAlignment="Center" IsCheckedChanged="OnResizeToggled" />
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Text="Result file type" FontSize="12" Foreground="{StaticResource Muted}"
@@ -62,9 +64,6 @@
         </Border>
       </StackPanel>
     </StackPanel>
-
-    <CheckBox x:Name="ResizeToggle" Content="Resize images to reduce file size further"
-              IsCheckedChanged="OnResizeToggled" HorizontalAlignment="Center" />
 
     <!-- Solid border; Avalonia Border has no dash support -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220" CornerRadius="14"
