@@ -13,7 +13,7 @@ public sealed class UnsupportedImageException(string message) : Exception(messag
 /// <summary>
 /// UI-free compression engine — no dispatcher, no Avalonia types — so <see cref="SelfCheck"/> runs it headless.
 /// </summary>
-public static class Compressor
+public static partial class Compressor
 {
     /// <summary>
     /// The one supported-input whitelist used everywhere (drop, folders, file picker). No TIFF: Skia ships no codec.
@@ -206,8 +206,9 @@ public static class Compressor
                      ullTotalVirtual, ullAvailVirtual, ullAvailExtendedVirtual;
     }
 
-    [DllImport("kernel32.dll", SetLastError = true)]
-    private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX status);
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX status);
 
     /// <summary>
     /// Physical RAM free right now (Windows), excluding the page file.

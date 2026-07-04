@@ -6,6 +6,7 @@
     <RootNamespace>InstantCompress</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks> <!-- required by LibraryImport's generated marshalling for GlobalMemoryStatusEx -->
     <!-- Avalonia needs this for OLE drag&drop on Windows -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
