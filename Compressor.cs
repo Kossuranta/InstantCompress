@@ -275,13 +275,17 @@ public static class Compressor
             using var pix = bmp.PeekPixels();
             // ponytail: cancel is checked between stages only; Skia's native encode isn't safely abortable
             // mid-stream — worst-case cancel latency is one file's encode.
-            bool ok = format == "jpg"
+            bool ok = format switch
+            {
                 // BlendOnBlack flattens alpha inside the native encoder (JPEG has no alpha).
-                ? pix.Encode(ws, new SKJpegEncoderOptions(preset.JpgQuality,
-                      SKJpegEncoderDownsample.Downsample420, SKJpegEncoderAlphaOption.BlendOnBlack))
+                "jpg" => pix.Encode(ws, new SKJpegEncoderOptions(preset.JpgQuality,
+                             SKJpegEncoderDownsample.Downsample420, SKJpegEncoderAlphaOption.BlendOnBlack)),
+                // Lossy WebP; quality shares the 0-100 scale with JPEG.
+                "webp" => pix.Encode(ws, new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, preset.JpgQuality)),
                 // SKPngEncoderOptions is the only Skia PNG path honoring a zlib level;
                 // SKBitmap.Encode(Png, quality) ignores quality entirely.
-                : pix.Encode(ws, new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, preset.PngLevel));
+                _ => pix.Encode(ws, new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, preset.PngLevel)),
+            };
             if (!ok) throw new Exception("Encode failed");
             ct.ThrowIfCancellationRequested(); // cancelled during encode: deleted below
         }

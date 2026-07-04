@@ -91,8 +91,9 @@ public partial class MainWindow : Window
     private void SyncCustomRange()
     {
         bool prev = _loading; _loading = true; // range/value churn here must not persist
-        if (_format == "jpg") { CustomValue.Minimum = 1; CustomValue.Maximum = 100; CustomValue.Value = _settings.CustomJpg; }
-        else { CustomValue.Minimum = 0; CustomValue.Maximum = 9; CustomValue.Value = _settings.CustomPng; }
+        // JPG and WebP are quality-based (1-100); only PNG uses a zlib level (0-9).
+        if (_format == "png") { CustomValue.Minimum = 0; CustomValue.Maximum = 9; CustomValue.Value = _settings.CustomPng; }
+        else { CustomValue.Minimum = 1; CustomValue.Maximum = 100; CustomValue.Value = _settings.CustomJpg; }
         _loading = prev;
     }
 
@@ -118,7 +119,7 @@ public partial class MainWindow : Window
     {
         if (_loading) return;
         var v = (int)(CustomValue.Value ?? 0);
-        if (_format == "jpg") _settings.CustomJpg = v; else _settings.CustomPng = v;
+        if (_format == "png") _settings.CustomPng = v; else _settings.CustomJpg = v;
         Save();
     }
 

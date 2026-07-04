@@ -44,6 +44,7 @@
         <StackPanel x:Name="FormatGroup" Orientation="Horizontal" Spacing="3">
           <ToggleButton Content="JPG" Tag="jpg" IsChecked="True" Click="OnSegClick" />
           <ToggleButton Content="PNG" Tag="png" Click="OnSegClick" />
+          <ToggleButton Content="WebP" Tag="webp" Click="OnSegClick" />
         </StackPanel>
       </Border>
     </StackPanel>

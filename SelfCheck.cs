@@ -34,7 +34,7 @@ public static class SelfCheck
             Save(bmp, webpIn, SKEncodedImageFormat.Webp);
 
             string[] inputs = new[] { pngIn, jpgIn, webpIn };
-            foreach (string format in new[] { "jpg", "png" })
+            foreach (string format in new[] { "jpg", "png", "webp" })
             {
                 var errors = new List<string>();
                 string outDir = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
