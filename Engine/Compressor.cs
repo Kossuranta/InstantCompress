@@ -92,7 +92,7 @@ public static partial class Compressor
     /// </remarks>
     /// <returns>The output folder and per-file results, returned even when cancelled (partial output is kept).</returns>
     public static BatchResult CompressBatch(IReadOnlyList<string> files, string format, PresetSettings preset,
-                                       int maxDim, Action<Progress> onProgress, Action<string> onError,
+                                       ResizeSettings resize, Action<Progress> onProgress, Action<string> onError,
                                        CancellationToken ct)
     {
         string baseDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(files[0]))!,
@@ -141,7 +141,7 @@ public static partial class Compressor
             {
                 try
                 {
-                    long outBytes = CompressOne(files[i], outPaths[i], format, preset, maxDim, ct);
+                    long outBytes = CompressOne(files[i], outPaths[i], format, preset, resize, ct);
                     results[i] = new FileResult(files[i], sizes[i], outBytes, FileStatus.Ok, null);
                 }
                 catch (OperationCanceledException) { throw; }                // stop the loop (index stays Skipped)
@@ -284,30 +284,41 @@ public static partial class Compressor
         new() { ScaleX = sx, SkewX = kx, TransX = tx, SkewY = ky, ScaleY = sy, TransY = ty, Persp2 = 1 };
 
     /// <summary>
-    /// Returns <paramref name="src"/> scaled so its longest side is <paramref name="maxDim"/>, aspect preserved.
+    /// Computes the resized (width, height) for <paramref name="resize"/>, or null if it wouldn't shrink the image.
     /// </summary>
-    private static SKBitmap Downscale(SKBitmap src, int maxDim)
+    internal static (int Width, int Height)? TargetSize(int srcWidth, int srcHeight, ResizeSettings resize)
     {
-        double scale = (double)maxDim / Math.Max(src.Width, src.Height);
-        int w = Math.Max(1, (int)Math.Round(src.Width * scale));
-        int h = Math.Max(1, (int)Math.Round(src.Height * scale));
-        // SKFilterQuality.High = Lanczos-ish downsample; fine here, and it's the 2.88 API (pinned, see PLAN).
-        return src.Resize(new SKImageInfo(w, h), SKFilterQuality.High) ?? throw new Exception("Resize failed");
+        if (!resize.Enabled) return null;
+        double scale = resize.Mode switch
+        {
+            ResizeMode.WidthAndHeight => Math.Min((double)resize.MaxWidth / srcWidth, (double)resize.MaxHeight / srcHeight),
+            ResizeMode.Percentage => resize.Percent / 100.0,
+            _ => (double)resize.MaxDim / Math.Max(srcWidth, srcHeight), // LongestSide
+        };
+        if (scale >= 1) return null; // already within bounds: never upscale
+        return (Math.Max(1, (int)Math.Round(srcWidth * scale)), Math.Max(1, (int)Math.Round(srcHeight * scale)));
     }
 
     /// <summary>
-    /// Decodes one image (orientation applied), optionally downscales to <paramref name="maxDim"/> (0 = off),
+    /// Returns <paramref name="src"/> scaled to exactly <paramref name="w"/> x <paramref name="h"/>.
+    /// </summary>
+    private static SKBitmap Downscale(SKBitmap src, int w, int h) =>
+        // SKFilterQuality.High = Lanczos-ish downsample; fine here, and it's the 2.88 API (pinned, see PLAN).
+        src.Resize(new SKImageInfo(w, h), SKFilterQuality.High) ?? throw new Exception("Resize failed");
+
+    /// <summary>
+    /// Decodes one image (orientation applied), optionally resizes per <paramref name="resize"/>,
     /// and re-encodes it to <paramref name="outPath"/>; deletes the output on error or cancel.
     /// </summary>
     /// <returns>Size of the written output file in bytes.</returns>
-    private static long CompressOne(string path, string outPath, string format, PresetSettings preset, int maxDim, CancellationToken ct)
+    private static long CompressOne(string path, string outPath, string format, PresetSettings preset, ResizeSettings resize, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         using var decoded = DecodeOriented(path)
             ?? throw new UnsupportedImageException("unsupported or corrupt"); // returns null, never throws
         ct.ThrowIfCancellationRequested();
-        using var resized = maxDim > 0 && Math.Max(decoded.Width, decoded.Height) > maxDim
-            ? Downscale(decoded, maxDim) : null;
+        (int Width, int Height)? target = TargetSize(decoded.Width, decoded.Height, resize);
+        using var resized = target is { } t ? Downscale(decoded, t.Width, t.Height) : null;
         var bmp = resized ?? decoded;
         try
         {

@@ -32,6 +32,8 @@ public partial class MainWindow : Window
     private readonly IBrush _normalBorder, _accentBorder;
     private readonly Settings _settings = SettingsStore.Load();
     private bool _loading;             // suppress persistence while applying loaded settings to the UI
+    private bool _syncingCustom;       // guard against the slider/spinner re-triggering each other
+    private bool _initialized;         // guards against XAML init-time ValueChanged firing before all fields exist
 
     /// <summary>
     /// Wires up drop-zone handlers and the coalesced progress timer.
@@ -62,6 +64,7 @@ public partial class MainWindow : Window
 
         ApplyTheme(_settings.Theme);
         ApplySettingsToUi();
+        _initialized = true;
     }
 
     /// <summary>
@@ -105,7 +108,25 @@ public partial class MainWindow : Window
         SyncCustomRange();
         ResizeToggle.IsChecked = _settings.ResizeOn;
         ResizeValue.Value = _settings.MaxDim;
+        MaxWidthValue.Value = _settings.MaxWidth;
+        MaxHeightValue.Value = _settings.MaxHeight;
+        ScalePercentValue.Value = _settings.ScalePercent;
+        ResizeModeLongest.IsChecked = _settings.ResizeMode == "longest";
+        ResizeModeWidthHeight.IsChecked = _settings.ResizeMode == "widthheight";
+        ResizeModePercentage.IsChecked = _settings.ResizeMode == "percentage";
+        UpdateResizeModeEnabled();
         _loading = false;
+    }
+
+    /// <summary>
+    /// Enables only the value control(s) for the selected resize mode; the rest are greyed out.
+    /// </summary>
+    private void UpdateResizeModeEnabled()
+    {
+        ResizeValue.IsEnabled = _settings.ResizeMode == "longest";
+        MaxWidthValue.IsEnabled = _settings.ResizeMode == "widthheight";
+        MaxHeightValue.IsEnabled = _settings.ResizeMode == "widthheight";
+        ScalePercentValue.IsEnabled = _settings.ResizeMode == "percentage";
     }
 
     /// <summary>
@@ -118,14 +139,17 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Points the custom-value spinner at the range/value for the current format (JPG 1-100, PNG 0-9).
+    /// Points the custom-value slider/spinner at the range/value for the current format (JPG 1-100, PNG 0-9).
     /// </summary>
     private void SyncCustomRange()
     {
         bool prev = _loading; _loading = true; // range/value churn here must not persist
         // JPG and WebP are quality-based (1-100); only PNG uses a zlib level (0-9).
-        if (_format == "png") { CustomValue.Minimum = 0; CustomValue.Maximum = 9; CustomValue.Value = _settings.CustomPng; }
-        else { CustomValue.Minimum = 1; CustomValue.Maximum = 100; CustomValue.Value = _settings.CustomJpg; }
+        int min = _format == "png" ? 0 : 1;
+        int max = _format == "png" ? 9 : 100;
+        int value = _format == "png" ? _settings.CustomPng : _settings.CustomJpg;
+        CustomSlider.Minimum = min; CustomSlider.Maximum = max; CustomSlider.Value = value;
+        CustomValue.Minimum = min; CustomValue.Maximum = max; CustomValue.Value = value;
         _loading = prev;
     }
 
@@ -141,12 +165,25 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Stores the custom quality/level for the active format and persists it.
+    /// Stores the custom quality/level for the active format and persists it; mirrors the value onto the slider.
     /// </summary>
     private void OnCustomValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
     {
-        if (_loading) return;
+        if (!_initialized || _loading || _syncingCustom) return;
         var v = (int)(CustomValue.Value ?? 0);
+        _syncingCustom = true; CustomSlider.Value = v; _syncingCustom = false;
+        if (_format == "png") _settings.CustomPng = v; else _settings.CustomJpg = v;
+        Save();
+    }
+
+    /// <summary>
+    /// Stores the custom quality/level for the active format and persists it; mirrors the value onto the spinner.
+    /// </summary>
+    private void OnCustomSliderChanged(object? sender, RangeBaseValueChangedEventArgs e)
+    {
+        if (!_initialized || _loading || _syncingCustom) return;
+        var v = (int)CustomSlider.Value;
+        _syncingCustom = true; CustomValue.Value = v; _syncingCustom = false;
         if (_format == "png") _settings.CustomPng = v; else _settings.CustomJpg = v;
         Save();
     }
@@ -167,6 +204,46 @@ public partial class MainWindow : Window
     {
         if (_loading) return;
         _settings.MaxDim = (int)(ResizeValue.Value ?? _settings.MaxDim);
+        Save();
+    }
+
+    /// <summary>
+    /// Switches which resize mode Custom uses, greys out the other modes' inputs, and persists the choice.
+    /// </summary>
+    private void OnResizeModeClick(object? sender, RoutedEventArgs e)
+    {
+        _settings.ResizeMode = (string)((RadioButton)sender!).Tag!;
+        UpdateResizeModeEnabled();
+        Save();
+    }
+
+    /// <summary>
+    /// Stores the width cap for the "width & height" resize mode and persists it.
+    /// </summary>
+    private void OnMaxWidthValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_loading) return;
+        _settings.MaxWidth = (int)(MaxWidthValue.Value ?? _settings.MaxWidth);
+        Save();
+    }
+
+    /// <summary>
+    /// Stores the height cap for the "width & height" resize mode and persists it.
+    /// </summary>
+    private void OnMaxHeightValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_loading) return;
+        _settings.MaxHeight = (int)(MaxHeightValue.Value ?? _settings.MaxHeight);
+        Save();
+    }
+
+    /// <summary>
+    /// Stores the scale percentage for the "percentage" resize mode and persists it.
+    /// </summary>
+    private void OnScalePercentValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_loading) return;
+        _settings.ScalePercent = (int)(ScalePercentValue.Value ?? _settings.ScalePercent);
         Save();
     }
 
@@ -270,6 +347,22 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Builds this run's resize settings: off if the toggle is off, the active preset's longest-side cap for
+    /// Low/Medium/High, or Custom's chosen mode (longest side / width &amp; height / percentage).
+    /// </summary>
+    private ResizeSettings BuildResize(PresetSettings preset)
+    {
+        if (!_settings.ResizeOn) return ResizeSettings.Off;
+        if (!_settings.CustomOn) return new ResizeSettings(true, ResizeMode.LongestSide, preset.MaxDim, 0, 0, 100);
+        return _settings.ResizeMode switch
+        {
+            "widthheight" => new ResizeSettings(true, ResizeMode.WidthAndHeight, 0, _settings.MaxWidth, _settings.MaxHeight, 100),
+            "percentage" => new ResizeSettings(true, ResizeMode.Percentage, 0, 0, 0, _settings.ScalePercent),
+            _ => new ResizeSettings(true, ResizeMode.LongestSide, _settings.MaxDim, 0, 0, 100),
+        };
+    }
+
+    /// <summary>
     /// Runs the batch off the UI thread and updates the busy/done panels.
     /// </summary>
     private async void StartJob(IReadOnlyList<string> files)
@@ -295,11 +388,11 @@ public partial class MainWindow : Window
         (string fmt, PresetSettings preset) = (_format, _settings.CustomOn
             ? new PresetSettings(_settings.CustomJpg, _settings.CustomJpg, _settings.CustomPng, _settings.MaxDim)
             : Presets.Values[_preset]);
-        int maxDim = _settings.ResizeOn ? preset.MaxDim : 0;
+        ResizeSettings resize = BuildResize(preset);
         string? outDir = null;
         try
         {
-            Task<Compressor.BatchResult> job = Task.Run(() => Compressor.CompressBatch(files, fmt, preset, maxDim,
+            Task<Compressor.BatchResult> job = Task.Run(() => Compressor.CompressBatch(files, fmt, preset, resize,
                 p => Volatile.Write(ref _latestProgress, p), // hot path: no dispatcher, timer picks it up
                 err => Dispatcher.UIThread.Post(() => AppendError(err)),
                 _cts.Token));

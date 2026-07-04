@@ -13,7 +13,11 @@ public sealed class Settings
     public int CustomJpg { get; set; } = 80; // 1-100
     public int CustomPng { get; set; } = 6;  // 0-9
     public bool ResizeOn { get; set; } = true;
+    public string ResizeMode { get; set; } = "longest"; // "longest" / "widthheight" / "percentage" (Custom only)
     public int MaxDim { get; set; } = 2048;   // longest-side cap in px when ResizeOn
+    public int MaxWidth { get; set; } = 1920; // width cap in px for ResizeMode "widthheight"
+    public int MaxHeight { get; set; } = 1080; // height cap in px for ResizeMode "widthheight"
+    public int ScalePercent { get; set; } = 50; // scale % for ResizeMode "percentage"
     public string? Theme { get; set; }        // "light" / "dark", or null to follow the OS theme
 }
 

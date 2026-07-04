@@ -112,15 +112,39 @@
     <TextBlock Text="Custom settings" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
 
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <TextBlock Text="Quality / level" VerticalAlignment="Center" />
-      <NumericUpDown x:Name="CustomValue" Minimum="1" Maximum="100" Increment="1" Width="120"
+      <TextBlock Text="Quality" VerticalAlignment="Center" />
+      <Slider x:Name="CustomSlider" Minimum="1" Maximum="100" Width="140" VerticalAlignment="Center"
+              ValueChanged="OnCustomSliderChanged" />
+      <NumericUpDown x:Name="CustomValue" Minimum="1" Maximum="100" Increment="1" Width="90"
                      FormatString="0" ValueChanged="OnCustomValueChanged" />
     </StackPanel>
 
+    <TextBlock Text="Resize by" FontSize="12" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+
     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
-      <TextBlock Text="Max size (px)" VerticalAlignment="Center" />
-      <NumericUpDown x:Name="ResizeValue" Minimum="16" Maximum="20000" Increment="128" Width="130"
+      <RadioButton x:Name="ResizeModeLongest" GroupName="ResizeMode" Content="Longest side" Tag="longest"
+                   VerticalAlignment="Center" Click="OnResizeModeClick" />
+      <NumericUpDown x:Name="ResizeValue" Minimum="16" Maximum="20000" Increment="128" Width="110"
                      FormatString="0" ValueChanged="OnResizeValueChanged" />
+      <TextBlock Text="px" VerticalAlignment="Center" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+      <RadioButton x:Name="ResizeModeWidthHeight" GroupName="ResizeMode" Content="Width &amp; height" Tag="widthheight"
+                   VerticalAlignment="Center" Click="OnResizeModeClick" />
+      <NumericUpDown x:Name="MaxWidthValue" Minimum="16" Maximum="20000" Increment="64" Width="90"
+                     FormatString="0" ValueChanged="OnMaxWidthValueChanged" />
+      <TextBlock Text="×" VerticalAlignment="Center" />
+      <NumericUpDown x:Name="MaxHeightValue" Minimum="16" Maximum="20000" Increment="64" Width="90"
+                     FormatString="0" ValueChanged="OnMaxHeightValueChanged" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8">
+      <RadioButton x:Name="ResizeModePercentage" GroupName="ResizeMode" Content="Percentage" Tag="percentage"
+                   VerticalAlignment="Center" Click="OnResizeModeClick" />
+      <NumericUpDown x:Name="ScalePercentValue" Minimum="1" Maximum="100" Increment="5" Width="90"
+                     FormatString="0" ValueChanged="OnScalePercentValueChanged" />
+      <TextBlock Text="%" VerticalAlignment="Center" />
     </StackPanel>
   </StackPanel>
 

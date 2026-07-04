@@ -38,7 +38,7 @@ public static class SelfCheck
             {
                 var errors = new List<string>();
                 Compressor.BatchResult batch = Compressor.CompressBatch(inputs, format, Presets.Values[Preset.Medium],
-                    0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
+                    ResizeSettings.Off, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
                 if (errors.Count > 0) return Fail("errors: " + string.Join("; ", errors));
                 if (batch.Files.Count != inputs.Length || !batch.Files.All(f =>
                         f.Status == Compressor.FileStatus.Ok && f.CompressedBytes > 0))
@@ -53,6 +53,7 @@ public static class SelfCheck
             if (!OrientationOk()) return Fail("EXIF orientation transform wrong");
             if (!GatherOk(dir, jpgIn)) return Fail("Gather did not expand/filter correctly");
             if (!ResizeOk(inputs)) return Fail("resize did not bound output dimensions");
+            if (!ResizeModeOk()) return Fail("TargetSize wrong for a resize mode");
             if (!SkipOk(dir, pngIn)) return Fail("corrupt input was not skipped");
             Console.WriteLine("selfcheck: OK");
             return 0;
@@ -114,7 +115,8 @@ public static class SelfCheck
     {
         var errors = new List<string>();
         Compressor.BatchResult batch = Compressor.CompressBatch(inputs, "jpg", Presets.Values[Preset.Medium],
-            256, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
+            new ResizeSettings(true, ResizeMode.LongestSide, 256, 0, 0, 100),
+            _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
         if (errors.Count > 0) return false;
         foreach (string f in Directory.EnumerateFiles(batch.OutDir))
         {
@@ -122,6 +124,25 @@ public static class SelfCheck
             if (bmp == null || Math.Max(bmp.Width, bmp.Height) > 256) return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// Verifies <see cref="Compressor.TargetSize"/> for all three <see cref="ResizeMode"/>s: longest-side scales
+    /// to the longer edge, width-and-height fits within a box (aspect preserved), percentage scales both edges,
+    /// and an already-small image is left alone (never upscaled).
+    /// </summary>
+    private static bool ResizeModeOk()
+    {
+        if (Compressor.TargetSize(100, 50, new ResizeSettings(true, ResizeMode.LongestSide, 200, 0, 0, 100)) != null)
+            return false; // already within bounds: no resize
+        if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.LongestSide, 200, 0, 0, 100))
+            != (200, 100))
+            return false;
+        if (Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.WidthAndHeight, 0, 100, 100, 100))
+            != (100, 50))
+            return false;
+        return Compressor.TargetSize(1000, 500, new ResizeSettings(true, ResizeMode.Percentage, 0, 0, 0, 25))
+            == (250, 125);
     }
 
     /// <summary>
@@ -134,7 +155,7 @@ public static class SelfCheck
         File.WriteAllBytes(bad, new byte[] { 0xFF, 0xD8, 0x00, 0x01, 0x02, 0x03 }); // JPEG magic then garbage
         var errors = new List<string>();
         Compressor.BatchResult batch = Compressor.CompressBatch(new[] { goodImage, bad }, "jpg", Presets.Values[Preset.Medium],
-            0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
+            ResizeSettings.Off, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
         Compressor.FileResult badResult = batch.Files.First(f => f.Input == bad);
         Compressor.FileResult goodResult = batch.Files.First(f => f.Input == goodImage);
         return errors.Count == 0                                    // a skip is not an error
