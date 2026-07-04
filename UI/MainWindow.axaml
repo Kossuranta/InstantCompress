@@ -47,10 +47,10 @@
         <TextBlock Text="Higher compression means lower image quality." FontSize="11"
                    Foreground="{StaticResource Muted}" HorizontalAlignment="Center"
                    TextWrapping="Wrap" TextAlignment="Center" MaxWidth="160" />
-        <Button x:Name="SettingsButton" Content="Settings" FontSize="11" Padding="10,4" IsVisible="False"
+        <Button x:Name="SettingsButton" Content="Settings" FontSize="11" Padding="10,4" Height="26" IsVisible="False"
                 HorizontalAlignment="Center" Click="OnSettingsClick" ToolTip.Tip="Custom quality &amp; resize" />
-        <CheckBox x:Name="ResizeToggle" Content="Allow resizing images" FontSize="11"
-                  HorizontalAlignment="Center" IsCheckedChanged="OnResizeToggled" />
+        <CheckBox x:Name="ResizeToggle" Content="Allow resizing images" FontSize="11" Height="26"
+                  HorizontalAlignment="Center" VerticalContentAlignment="Center" IsCheckedChanged="OnResizeToggled" />
       </StackPanel>
       <StackPanel Spacing="4">
         <TextBlock Text="Result file type" FontSize="12" Foreground="{StaticResource Muted}"
