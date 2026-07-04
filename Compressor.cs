@@ -30,6 +30,32 @@ public static class Compressor
     };
 
     /// <summary>
+    /// The one supported-input whitelist used everywhere (drop, folders, file picker). No TIFF: Skia ships no codec.
+    /// </summary>
+    public static readonly string[] SupportedExts = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
+
+    /// <summary>Whether <paramref name="path"/> has a supported image extension.</summary>
+    public static bool IsSupported(string path) =>
+        SupportedExts.Contains(Path.GetExtension(path).ToLowerInvariant());
+
+    /// <summary>
+    /// Expands any folders (recursively) and keeps only supported images, deduped by full path, input order preserved.
+    /// </summary>
+    public static List<string> Gather(IEnumerable<string> paths)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        void Add(string f) { if (IsSupported(f) && seen.Add(Path.GetFullPath(f))) result.Add(f); }
+        foreach (string p in paths)
+        {
+            if (Directory.Exists(p))
+                foreach (string f in Directory.EnumerateFiles(p, "*", SearchOption.AllDirectories)) Add(f);
+            else if (File.Exists(p)) Add(p);
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Batch progress snapshot passed to the progress callback.
     /// </summary>
     public readonly record struct Progress(int Done, int Total, string CurrentFile, long BytesDone, long BytesTotal);

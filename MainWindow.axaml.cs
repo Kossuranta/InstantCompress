@@ -14,9 +14,6 @@ namespace InstantCompress;
 /// </summary>
 public partial class MainWindow : Window
 {
-    // No TIFF: SkiaSharp/Skia ships no TIFF codec.
-    private static readonly string[] Exts = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
-
     private Preset _preset = Preset.Low;
     private string _format = "jpg";
     // ponytail: single-job assumption (one window, one bool).
@@ -79,25 +76,45 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Filters a drop to supported local image files and starts a job.
+    /// Expands dropped files and folders to supported images and starts a job; notices if nothing is usable.
     /// </summary>
     private void OnDrop(object? sender, DragEventArgs e)
     {
         SetDropHighlight(false);
         if (_busy) return; // ignore drops while a job runs
-        string[]? files = e.DataTransfer.TryGetFiles()?
-            .OfType<IStorageFile>() // dropped folders are skipped (no recursion)
+        string[]? paths = e.DataTransfer.TryGetFiles()?          // items are files or folders
             .Select(f => f.TryGetLocalPath())
-            .Where(p => p != null && Exts.Contains(Path.GetExtension(p).ToLowerInvariant()))
-            .Select(p => p!)
+            .Where(p => p != null).Select(p => p!)
             .ToArray();
-        if (files is { Length: > 0 }) StartJob(files);
+        if (paths is not { Length: > 0 }) return;                // non-file drop
+        StartFrom(paths);
+    }
+
+    /// <summary>
+    /// Gathers supported images from arbitrary paths (files/folders) and starts a job, or shows a notice.
+    /// </summary>
+    private void StartFrom(IEnumerable<string> paths)
+    {
+        var images = Compressor.Gather(paths);
+        if (images.Count == 0) { ShowNotice("No supported local images found."); return; }
+        StartJob(images);
+    }
+
+    /// <summary>
+    /// Shows a standalone message in the error panel (not a per-file error).
+    /// </summary>
+    private void ShowNotice(string msg)
+    {
+        _errors.Clear();
+        DonePanel.IsVisible = false;
+        ErrorsText.Text = msg;
+        ErrorPanel.IsVisible = true;
     }
 
     /// <summary>
     /// Runs the batch off the UI thread and updates the busy/done panels.
     /// </summary>
-    private async void StartJob(string[] files)
+    private async void StartJob(IReadOnlyList<string> files)
     {
         _busy = true;
         _cancelled = false;
@@ -105,9 +122,9 @@ public partial class MainWindow : Window
         _errors.Clear();
         ErrorPanel.IsVisible = false;
         DonePanel.IsVisible = false;
-        _done = 0; _total = files.Length; _bytesDone = 0; _bytesTotal = 0;
+        _done = 0; _total = files.Count; _bytesDone = 0; _bytesTotal = 0;
         _latestProgress = null;
-        Bar.Maximum = files.Length;
+        Bar.Maximum = files.Count;
         Bar.Value = 0;
         CurrentFileText.Text = "";
         RefreshCounter();
