@@ -37,7 +37,7 @@ public static class SelfCheck
             foreach (string format in new[] { "jpg", "png", "webp" })
             {
                 var errors = new List<string>();
-                var batch = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
+                Compressor.BatchResult batch = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
                     0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
                 if (errors.Count > 0) return Fail("errors: " + string.Join("; ", errors));
                 if (batch.Files.Count != inputs.Length || !batch.Files.All(f =>
@@ -96,7 +96,7 @@ public static class SelfCheck
         File.Copy(existingImage, nested, overwrite: true);
         File.WriteAllText(Path.Combine(dir, "notes.txt"), "x"); // unsupported: must be skipped
 
-        var got = Compressor.Gather(new[] { dir, existingImage }); // dir recursion + a dupe of existingImage
+        List<string> got = Compressor.Gather(new[] { dir, existingImage }); // dir recursion + a dupe of existingImage
         if (!got.Contains(nested)                          // found in subfolder
             || !got.Contains(existingImage)                // whitelisted file kept
             || got.Count(p => Path.GetFullPath(p) == Path.GetFullPath(existingImage)) != 1 // deduped
@@ -113,7 +113,7 @@ public static class SelfCheck
     private static bool ResizeOk(string[] inputs)
     {
         var errors = new List<string>();
-        var batch = Compressor.CompressBatch(inputs, "jpg", Compressor.Presets[Preset.Medium],
+        Compressor.BatchResult batch = Compressor.CompressBatch(inputs, "jpg", Compressor.Presets[Preset.Medium],
             256, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
         if (errors.Count > 0) return false;
         foreach (string f in Directory.EnumerateFiles(batch.OutDir))
@@ -133,10 +133,10 @@ public static class SelfCheck
         string bad = Path.Combine(dir, "corrupt.jpg");
         File.WriteAllBytes(bad, new byte[] { 0xFF, 0xD8, 0x00, 0x01, 0x02, 0x03 }); // JPEG magic then garbage
         var errors = new List<string>();
-        var batch = Compressor.CompressBatch(new[] { goodImage, bad }, "jpg", Compressor.Presets[Preset.Medium],
+        Compressor.BatchResult batch = Compressor.CompressBatch(new[] { goodImage, bad }, "jpg", Compressor.Presets[Preset.Medium],
             0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
-        var badResult = batch.Files.First(f => f.Input == bad);
-        var goodResult = batch.Files.First(f => f.Input == goodImage);
+        Compressor.FileResult badResult = batch.Files.First(f => f.Input == bad);
+        Compressor.FileResult goodResult = batch.Files.First(f => f.Input == goodImage);
         return errors.Count == 0                                    // a skip is not an error
             && badResult.Status == Compressor.FileStatus.Skipped
             && goodResult.Status == Compressor.FileStatus.Ok;

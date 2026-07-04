@@ -195,7 +195,7 @@ public partial class MainWindow : Window
     private async void OnChooseClick(object? sender, RoutedEventArgs e)
     {
         if (_busy) return;
-        var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        IReadOnlyList<IStorageFile> picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             AllowMultiple = true,
             Title = "Choose images",
@@ -257,12 +257,12 @@ public partial class MainWindow : Window
         string? outDir = null;
         try
         {
-            var job = Task.Run(() => Compressor.CompressBatch(files, fmt, preset, maxDim,
+            Task<Compressor.BatchResult> job = Task.Run(() => Compressor.CompressBatch(files, fmt, preset, maxDim,
                 p => Volatile.Write(ref _latestProgress, p), // hot path: no dispatcher, timer picks it up
                 err => Dispatcher.UIThread.Post(() => AppendError(err)),
                 _cts.Token));
             _job = job;
-            var result = await job;
+            Compressor.BatchResult result = await job;
             outDir = result.OutDir;
             _lastResults = result.Files;
         }
@@ -319,7 +319,7 @@ public partial class MainWindow : Window
     {
         if (_lastResults.Count == 0) return "No results.";
         int nameW = Math.Min(40, _lastResults.Max(r => Path.GetFileName(r.Input).Length));
-        var lines = _lastResults.Select(r =>
+        IEnumerable<string> lines = _lastResults.Select(r =>
         {
             string name = Path.GetFileName(r.Input).PadRight(nameW);
             return r.Status switch
