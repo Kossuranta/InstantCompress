@@ -22,8 +22,8 @@ public static class Presets
     /// </summary>
     public static readonly Dictionary<Preset, PresetSettings> Values = new()
     {
-        [Preset.Low] = new PresetSettings(90, 90, 9, 4096),
-        [Preset.Medium] = new PresetSettings(75, 75, 8, 2048),
-        [Preset.High] = new PresetSettings(60, 60, 6, 1280),
+        [Preset.Low] = new PresetSettings(90, 90, 1, 4096),
+        [Preset.Medium] = new PresetSettings(75, 75, 6, 2048),
+        [Preset.High] = new PresetSettings(60, 60, 9, 1280),
     };
 }
