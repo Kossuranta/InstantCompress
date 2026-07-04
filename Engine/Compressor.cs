@@ -261,7 +261,7 @@ public static partial class Compressor
                                src.ColorType, src.AlphaType);
         using var canvas = new SKCanvas(dst);
         canvas.SetMatrix(OriginMatrix(origin, src.Width, src.Height));
-        canvas.DrawBitmap(src, 0, 0);
+        canvas.DrawBitmap(src, 0, 0, new SKSamplingOptions());
         canvas.Flush();
         return dst;
     }
@@ -310,8 +310,8 @@ public static partial class Compressor
     /// Returns <paramref name="src"/> scaled to exactly <paramref name="w"/> x <paramref name="h"/>.
     /// </summary>
     private static SKBitmap Downscale(SKBitmap src, int w, int h) =>
-        // SKFilterQuality.High = Lanczos-ish downsample; fine here, and it's the 2.88 API (pinned, see PLAN).
-        src.Resize(new SKImageInfo(w, h), SKFilterQuality.High) ?? throw new Exception("Resize failed");
+        // Cubic Mitchell is the SkiaSharp 4.x equivalent of the removed SKFilterQuality.High.
+        src.Resize(new SKImageInfo(w, h), new SKSamplingOptions(SKCubicResampler.Mitchell)) ?? throw new Exception("Resize failed");
 
     /// <summary>
     /// Decodes one image (orientation applied), optionally resizes per <paramref name="resize"/>,

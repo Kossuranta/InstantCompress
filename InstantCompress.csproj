@@ -26,13 +26,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
-    <!-- Same version Avalonia 11.3.18 binds against (Avalonia.Skia nuspec).
-         Do NOT bump to SkiaSharp 3.x — Avalonia 11.x targets the 2.88 ABI.
-         Linux natives (libSkiaSharp.so) come transitively via Avalonia.Skia ->
-         SkiaSharp.NativeAssets.Linux. -->
-    <PackageReference Include="SkiaSharp" Version="2.88.9" />
+    <PackageReference Include="Avalonia" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.5" />
+    <!-- Avalonia.Skia 12.0.5 depends on SkiaSharp >= 3.119.4 (no upper bound), so we pull
+         the newer 4.148.0 explicitly. SkiaSharp 4.x removed SKFilterQuality (-> SKSamplingOptions).
+         Avalonia only pins SkiaSharp.NativeAssets.Linux to the 3.119 line transitively, so we
+         reference the matching 4.148.0 Linux native explicitly to avoid a managed/native ABI
+         split (Win32/macOS natives already resolve to 4.148.0 via the managed package). -->
+    <PackageReference Include="SkiaSharp" Version="4.148.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="4.148.0" />
   </ItemGroup>
 </Project>
