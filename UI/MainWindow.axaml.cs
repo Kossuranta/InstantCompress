@@ -103,7 +103,6 @@ public partial class MainWindow : Window
         SettingsButton.IsVisible = _settings.CustomOn;
         SyncCustomRange();
         ResizeToggle.IsChecked = _settings.ResizeOn;
-        ResizeValue.IsEnabled = _settings.ResizeOn;
         ResizeValue.Value = _settings.MaxDim;
         _loading = false;
     }
@@ -152,12 +151,11 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Enables the resize spinner and persists the toggle.
+    /// Persists the resize toggle: caps the longest side to the active preset's (or Custom's) max size.
     /// </summary>
     private void OnResizeToggled(object? sender, RoutedEventArgs e)
     {
         _settings.ResizeOn = ResizeToggle.IsChecked == true;
-        ResizeValue.IsEnabled = _settings.ResizeOn;
         Save();
     }
 
@@ -291,11 +289,11 @@ public partial class MainWindow : Window
         _sw.Restart();
         _etaTimer.Start();
 
-        // captured at drop: custom quality overrides the preset when enabled
-        (string fmt, var preset) = (_format, _settings.CustomOn
-            ? new PresetSettings(_settings.CustomJpg, _settings.CustomJpg, _settings.CustomPng)
+        // captured at drop: custom quality/size override the preset when enabled
+        (string fmt, PresetSettings preset) = (_format, _settings.CustomOn
+            ? new PresetSettings(_settings.CustomJpg, _settings.CustomJpg, _settings.CustomPng, _settings.MaxDim)
             : Presets.Values[_preset]);
-        int maxDim = _settings.ResizeOn ? _settings.MaxDim : 0;
+        int maxDim = _settings.ResizeOn ? preset.MaxDim : 0;
         string? outDir = null;
         try
         {
