@@ -120,7 +120,8 @@ public static class Compressor
         // Two runs in the same second would otherwise reuse one folder and mix outputs. Tiny
         // TOCTOU window between Exists and Create is acceptable for a single-user desktop app.
         string outDir = baseDir;
-        for (int n = 1; Directory.Exists(outDir); n++) outDir = $"{baseDir}_{n}";
+        for (int n = 1; Directory.Exists(outDir); n++)
+            outDir = $"{baseDir}_{n}";
         Directory.CreateDirectory(outDir); // throws: aborts whole batch
 
         long[] sizes = files.Select(f => { try { return new FileInfo(f).Length; } catch { return 0L; } }).ToArray();
@@ -134,7 +135,8 @@ public static class Compressor
         {
             string stem = Path.GetFileNameWithoutExtension(files[i]);
             var name = $"{stem}.{format}";
-            for (var n = 1; !taken.Add(name); n++) name = $"{stem}_{n}.{format}";
+            for (var n = 1; !taken.Add(name); n++)
+                name = $"{stem}_{n}.{format}";
             outPaths[i] = Path.Combine(outDir, name);
         }
 
