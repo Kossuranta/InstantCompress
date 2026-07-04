@@ -84,8 +84,9 @@ public static class SelfCheck
     }
 
     /// <summary>
-    /// Verifies <see cref="Compressor.Gather"/> recurses folders, applies the whitelist, and dedupes:
-    /// a subfolder image and an unsupported file are handled, and a path passed twice appears once.
+    /// Verifies <see cref="Compressor.Gather"/> recurses folders, applies the whitelist, dedupes, and stops
+    /// at its limit: a subfolder image and an unsupported file are handled, a path passed twice appears once,
+    /// and a limit of 1 collects exactly 1 file.
     /// </summary>
     private static bool GatherOk(string dir, string existingImage)
     {
@@ -96,10 +97,13 @@ public static class SelfCheck
         File.WriteAllText(Path.Combine(dir, "notes.txt"), "x"); // unsupported: must be skipped
 
         var got = Compressor.Gather(new[] { dir, existingImage }); // dir recursion + a dupe of existingImage
-        return got.Contains(nested)                       // found in subfolder
-            && got.Contains(existingImage)                // whitelisted file kept
-            && got.Count(p => Path.GetFullPath(p) == Path.GetFullPath(existingImage)) == 1 // deduped
-            && got.All(Compressor.IsSupported);           // nothing unsupported slipped through
+        if (!got.Contains(nested)                          // found in subfolder
+            || !got.Contains(existingImage)                // whitelisted file kept
+            || got.Count(p => Path.GetFullPath(p) == Path.GetFullPath(existingImage)) != 1 // deduped
+            || !got.All(Compressor.IsSupported))           // nothing unsupported slipped through
+            return false;
+
+        return Compressor.Gather(new[] { dir }, limit: 1).Count == 1; // limit stops collection early
     }
 
     /// <summary>

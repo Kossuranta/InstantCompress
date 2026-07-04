@@ -200,7 +200,7 @@ public partial class MainWindow : Window
             AllowMultiple = true,
             Title = "Choose images",
             FileTypeFilter = [new FilePickerFileType("Images")
-                { Patterns = [.. Compressor.SupportedExts.Select(x => "*" + x)] }],
+                { Patterns = [.. Compressor.SupportedTypes.Select(x => "*" + x)] }],
         });
         var paths = picked.Select(f => f.TryGetLocalPath()).Where(p => p != null).Select(p => p!).ToArray();
         if (paths.Length > 0) StartFrom(paths);

@@ -37,7 +37,7 @@ Key cross-file mechanics:
 ## Hard constraints
 
 - **SkiaSharp pinned 2.88.9** — Avalonia 11.x targets the 2.88 ABI. Do **not** bump to 3.x. (`SKFilterQuality`, `SKJpegEncoderOptions` etc. are 2.88 APIs.)
-- **No TIFF** — Skia ships no TIFF codec. The one supported-input whitelist is `Compressor.SupportedExts`.
+- **No TIFF** — Skia ships no TIFF codec. The one supported-input whitelist is `Compressor.SupportedTypes`.
 - **No MVVM, DI, config framework, or plugin architecture** — deliberate. Keep it plain code-behind.
 
 ## Style
@@ -45,6 +45,7 @@ Key cross-file mechanics:
 - XML doc comments on public/most members. `<summary>` is always the three-line form; `<param>`/`<returns>` may be single-line when short.
 - Use concrete types instead of `var` when the type is not apparent from the right-hand side.
 - Comment only when necessary, 2 rows max, and assume an experienced reader. If a longer explanation is needed, extract a method with a `<summary>` instead.
+- Local functions: multiline body, declared after the enclosing method's main logic (after the `return`, not before).
 
 ## Notes
 

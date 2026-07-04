@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Runtime.InteropServices;
 using SkiaSharp;
 
@@ -37,29 +38,48 @@ public static class Compressor
     /// <summary>
     /// The one supported-input whitelist used everywhere (drop, folders, file picker). No TIFF: Skia ships no codec.
     /// </summary>
-    public static readonly string[] SupportedExts = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"];
+    public static readonly FrozenSet<string> SupportedTypes =
+        new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp" }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Whether <paramref name="path"/> has a supported image extension.
     /// </summary>
     public static bool IsSupported(string path) =>
-        SupportedExts.Contains(Path.GetExtension(path).ToLowerInvariant());
+        SupportedTypes.Contains(Path.GetExtension(path));
 
     /// <summary>
-    /// Expands any folders (recursively) and keeps only supported images, deduped by full path, input order preserved.
+    /// Hard cap on files a single <see cref="Gather"/> call collects, so a huge folder tree can't exhaust memory.
     /// </summary>
-    public static List<string> Gather(IEnumerable<string> paths)
+    public const int MaxGatherFiles = 1_000_000;
+
+    /// <summary>
+    /// Expands any folders (recursively) and keeps only supported images, deduped by full path, input order
+    /// preserved, up to <paramref name="limit"/> files.
+    /// </summary>
+    public static List<string> Gather(IEnumerable<string> paths, int limit = MaxGatherFiles)
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<string>();
-        void Add(string f) { if (IsSupported(f) && seen.Add(Path.GetFullPath(f))) result.Add(f); }
         foreach (string p in paths)
         {
+            if (result.Count >= limit) break;
             if (Directory.Exists(p))
-                foreach (string f in Directory.EnumerateFiles(p, "*", SearchOption.AllDirectories)) Add(f);
+            {
+                foreach (string f in Directory.EnumerateFiles(p, "*", SearchOption.AllDirectories))
+                {
+                    Add(f);
+                    if (result.Count >= limit) break;
+                }
+            }
             else if (File.Exists(p)) Add(p);
         }
         return result;
+
+        void Add(string f)
+        {
+            if (IsSupported(f) && seen.Add(Path.GetFullPath(f)))
+                result.Add(f);
+        }
     }
 
     /// <summary>
@@ -76,7 +96,7 @@ public static class Compressor
     /// Per-file result for the results view.
     /// </summary>
     public readonly record struct FileResult(
-        string Input, string? Output, long OriginalBytes, long CompressedBytes, FileStatus Status, string? Error);
+        string Input, long OriginalBytes, long CompressedBytes, FileStatus Status, string? Error);
 
     /// <summary>
     /// What a batch produced: the output folder and one <see cref="FileResult"/> per input.
@@ -121,7 +141,7 @@ public static class Compressor
         // Pre-seed as Skipped: any index a worker never reaches (cancelled batch) keeps that status.
         var results = new FileResult[files.Count];
         for (var i = 0; i < files.Count; i++)
-            results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Skipped, null);
+            results[i] = new FileResult(files[i], sizes[i], 0, FileStatus.Skipped, null);
 
         var done = 0;
         long bytesDone = 0;
@@ -140,17 +160,17 @@ public static class Compressor
                 try
                 {
                     long outBytes = CompressOne(files[i], outPaths[i], format, preset, maxDim, ct);
-                    results[i] = new FileResult(files[i], outPaths[i], sizes[i], outBytes, FileStatus.Ok, null);
+                    results[i] = new FileResult(files[i], sizes[i], outBytes, FileStatus.Ok, null);
                 }
                 catch (OperationCanceledException) { throw; }                // stop the loop (index stays Skipped)
                 catch (UnsupportedImageException e)                          // undecodable: skip, not a failure
                 {
-                    results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Skipped, e.Message);
+                    results[i] = new FileResult(files[i], sizes[i], 0, FileStatus.Skipped, e.Message);
                 }
                 catch (Exception e)                                          // real per-file failure: record, continue
                 {
                     onError($"{files[i]}: {e.Message}");
-                    results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Failed, e.Message);
+                    results[i] = new FileResult(files[i], sizes[i], 0, FileStatus.Failed, e.Message);
                 }
                 onProgress(new Progress(Interlocked.Increment(ref done), files.Count,
                                         Path.GetFileName(files[i]),
