@@ -14,6 +14,7 @@ public sealed class Settings
     public int CustomPng { get; set; } = 6;  // 0-9
     public bool ResizeOn { get; set; }
     public int MaxDim { get; set; } = 2048;   // longest-side cap in px when ResizeOn
+    public string? Theme { get; set; }        // "light" / "dark", or null to follow the OS theme
 }
 
 /// <summary>

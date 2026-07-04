@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using Avalonia.Threading;
 
 namespace InstantCompress;
@@ -59,7 +60,34 @@ public partial class MainWindow : Window
         DropZone.AddHandler(DragDrop.DragLeaveEvent, (_, _) => SetDropHighlight(false));
         DropZone.AddHandler(DragDrop.DropEvent, OnDrop);
 
+        ApplyTheme(_settings.Theme);
         ApplySettingsToUi();
+    }
+
+    /// <summary>
+    /// Applies the saved theme choice, or the OS theme when none is saved.
+    /// </summary>
+    private void ApplyTheme(string? theme)
+    {
+        Application.Current!.RequestedThemeVariant = theme switch
+        {
+            "dark" => ThemeVariant.Dark,
+            "light" => ThemeVariant.Light,
+            _ => ThemeVariant.Default,
+        };
+        bool dark = Application.Current.ActualThemeVariant == ThemeVariant.Dark;
+        ThemeToggle.IsChecked = dark;
+        ThemeToggle.Content = dark ? "Light" : "Dark";
+    }
+
+    /// <summary>
+    /// Flips between light and dark, overriding the OS theme, and persists the choice.
+    /// </summary>
+    private void OnThemeToggleClick(object? sender, RoutedEventArgs e)
+    {
+        _settings.Theme = ThemeToggle.IsChecked == true ? "dark" : "light";
+        SettingsStore.Save(_settings);
+        ApplyTheme(_settings.Theme);
     }
 
     /// <summary>

@@ -28,6 +28,7 @@
     </Style>
   </Window.Styles>
 
+  <Panel>
   <StackPanel Margin="24,20" Spacing="12">
     <TextBlock Text="InstantCompress" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" />
     <TextBlock Text="Drop images. Get smaller ones." Foreground="{StaticResource Muted}"
@@ -103,4 +104,8 @@
       </ScrollViewer>
     </Border>
   </StackPanel>
+  <ToggleButton x:Name="ThemeToggle" Padding="12,5"
+                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12"
+                Click="OnThemeToggleClick" ToolTip.Tip="Toggle dark/light theme" />
+  </Panel>
 </Window>
