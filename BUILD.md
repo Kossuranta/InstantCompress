@@ -49,7 +49,8 @@ Verified: publish + `--selfcheck` pass. No app.manifest is shipped; default DPI 
 
 Verified to publish (compile + restore) from Windows; runtime notes:
 
-- Native Skia libs are bundled: `Avalonia.Skia` transitively references `SkiaSharp.NativeAssets.Linux` and `HarfBuzzSharp.NativeAssets.Linux`, so `libSkiaSharp.so` / `libHarfBuzzSharp.so` are embedded in the single file via `IncludeNativeLibrariesForSelfExtract`. If a future Avalonia bump ever drops the transitive reference, add an explicit `<PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="2.88.9" />`.
+- Native Skia libs are bundled: `HarfBuzzSharp.NativeAssets.Linux` comes transitively via `Avalonia.Skia`, and `SkiaSharp.NativeAssets.Linux` 4.148.0 is referenced explicitly (Avalonia only pins the 3.119 Linux native transitively — see `## Package versions`), so `libSkiaSharp.so` / `libHarfBuzzSharp.so` are embedded in the single file via `IncludeNativeLibrariesForSelfExtract`. Keep the explicit reference at the same version as the managed `SkiaSharp` package to avoid a managed/native ABI split.
+- **Runtime untested on Linux:** publishes (compile + restore) from Windows and the Windows self-check passes, but the managed 4.148.0 / native ABI pairing has not been exercised on an actual Linux box. Run `./InstantCompress --selfcheck` (exit 0) there before trusting it.
 - An X11 desktop is required (`libX11`, `libICE`, `libSM`).
 - `fontconfig` and at least one font must be installed (the Skia/HarfBuzz text stack needs them), e.g. `apt install fontconfig fonts-dejavu-core`.
 - You may need `chmod +x InstantCompress` after copying.
@@ -60,5 +61,6 @@ Verified to publish (compile + restore) from Windows; runtime notes:
 
 ## Package versions
 
-- Avalonia 11.3.18 (+ Desktop, Themes.Fluent)
-- SkiaSharp 2.88.9 — the exact version Avalonia 11.3.18 binds against. Do **not** bump to SkiaSharp 3.x: Avalonia 11.x targets the 2.88 ABI.
+- Avalonia 12.0.5 (+ Desktop, Themes.Fluent)
+- SkiaSharp 4.148.0 — Avalonia.Skia 12.0.5 depends on `SkiaSharp >= 3.119.4` with no upper bound, so the newer 4.148.0 is pulled explicitly. SkiaSharp 4.x removed the obsolete `SKFilterQuality` enum (resize uses `SKSamplingOptions` now).
+- SkiaSharp.NativeAssets.Linux 4.148.0 — explicit, to match the managed package on Linux (Avalonia only pins the 3.119 line transitively).

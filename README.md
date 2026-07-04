@@ -2,7 +2,7 @@
 
 Drop images. Get smaller ones.
 
-A tiny cross-platform desktop app (Avalonia 11, .NET 10) that batch-compresses images to JPG or PNG.
+A tiny cross-platform desktop app (Avalonia 12, .NET 10) that batch-compresses images to JPG or PNG.
 
 ## Features
 

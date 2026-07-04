@@ -7,12 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```powershell
 dotnet build -c Release                                   # must be 0 warnings
 dotnet run -c Release -- --selfcheck ; $LASTEXITCODE      # headless pipeline test; 0 = OK, 1 = fail
-dotnet publish -c Release -r win-x64                       # self-contained single-file exe (~93 MB)
+dotnet publish -c Release -r win-x64                       # self-contained single-file exe (~97 MB)
 ```
 
 `--selfcheck` **exit code is the contract** — `OutputType=WinExe`, so on Windows stdout is invisible unless redirected. When launching the published exe from PowerShell it does not block; use `Start-Process -Wait -PassThru` and read `.ExitCode`.
 
-RIDs also published: `linux-x64`, `osx-x64`, `osx-arm64` (see BUILD.md). No trimming — Avalonia + trimming is fragile, ~93 MB is expected.
+RIDs also published: `linux-x64`, `osx-x64`, `osx-arm64` (see BUILD.md). No trimming — Avalonia + trimming is fragile, ~97 MB is expected.
 
 ## Verify before every commit
 
@@ -37,7 +37,7 @@ Key cross-file mechanics:
 
 ## Hard constraints
 
-- **SkiaSharp pinned 2.88.9** — Avalonia 11.x targets the 2.88 ABI. Do **not** bump to 3.x. (`SKFilterQuality`, `SKJpegEncoderOptions` etc. are 2.88 APIs.)
+- **SkiaSharp 4.148.0** — Avalonia.Skia 12.0.5 depends on `SkiaSharp >= 3.119.4` (no upper bound); 4.148.0 is pulled explicitly. `SkiaSharp.NativeAssets.Linux` is referenced explicitly at the same version (Avalonia only pins the 3.119 Linux native transitively — a managed/native split crashes Linux at runtime). SkiaSharp 4.x removed `SKFilterQuality` (use `SKSamplingOptions`); `DrawBitmap`/`Resize` take an `SKSamplingOptions`. Encoder-options structs (`SKJpegEncoderOptions` etc.) are unchanged.
 - **No TIFF** — Skia ships no TIFF codec. The one supported-input whitelist is `Compressor.SupportedTypes`.
 - **No MVVM, DI, config framework, or plugin architecture** — deliberate. Keep it plain code-behind.
 
