@@ -97,10 +97,10 @@ public static class Compressor
     {
         string baseDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(files[0]))!,
                                   $"compressed_{DateTime.Now:yyyyMMdd_HHmmss}");
-        // Two runs in the same second would otherwise reuse one folder and mix/overwrite outputs.
-        // ponytail: tiny TOCTOU window between Exists and Create — single-user desktop app, not worth a lock.
+        // Two runs in the same second would otherwise reuse one folder and mix outputs. Tiny
+        // TOCTOU window between Exists and Create is acceptable for a single-user desktop app.
         string outDir = baseDir;
-        for (var n = 1; Directory.Exists(outDir); n++) outDir = $"{baseDir}_{n}";
+        for (int n = 1; Directory.Exists(outDir); n++) outDir = $"{baseDir}_{n}";
         Directory.CreateDirectory(outDir); // throws: aborts whole batch
 
         long[] sizes = files.Select(f => { try { return new FileInfo(f).Length; } catch { return 0L; } }).ToArray();
@@ -162,9 +162,7 @@ public static class Compressor
         return new BatchResult(outDir, results);
     }
 
-    // A decoded bitmap + native encode buffers for one worker: 50MP photos decode to ~200-400MB.
-    // ponytail: one fixed number for every image size, not measured per-file — raise if this proves
-    // too conservative on small-image batches.
+    // Fixed RAM budget per worker: a 50MP photo plus native encode buffers decode to ~200-400MB.
     private const long BytesPerWorker = 400L * 1024 * 1024;
 
     /// <summary>
@@ -315,8 +313,8 @@ public static class Compressor
             using (var ws = new SKManagedWStream(fs))
             using (var pix = bmp.PeekPixels())
             {
-                // ponytail: cancel is checked between stages only; Skia's native encode isn't safely abortable
-                // mid-stream — worst-case cancel latency is one file's encode.
+                // Native encode isn't safely abortable mid-stream, so cancel is checked between
+                // stages only; worst-case cancel latency is one file's encode.
                 bool ok = format switch
                 {
                     // BlendOnBlack flattens alpha inside the native encoder (JPEG has no alpha).

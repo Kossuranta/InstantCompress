@@ -14,7 +14,7 @@
   </Window.Resources>
 
   <Window.Styles>
-    <!-- ponytail: hand-rolled segmented control; Fluent has none -->
+    <!-- Hand-rolled segmented control; Fluent has none -->
     <Style Selector="Border.seg">
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="BorderBrush" Value="{StaticResource Faint}" />
@@ -64,7 +64,7 @@
                      IsEnabled="False" FormatString="0" ValueChanged="OnResizeValueChanged" />
     </StackPanel>
 
-    <!-- ponytail: solid border; Avalonia Border has no dash support, a Rectangle overlay isn't worth it -->
+    <!-- Solid border; Avalonia Border has no dash support -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220" CornerRadius="14"
             BorderThickness="2" BorderBrush="{StaticResource Faint}" Background="#10808080">
       <Panel>

@@ -43,9 +43,9 @@ Key cross-file mechanics:
 ## Style
 
 - XML doc comments on public/most members. `<summary>` is always the three-line form; `<param>`/`<returns>` may be single-line when short.
-- Mark deliberate shortcuts with a `// ponytail:` comment naming the ceiling.
+- Use concrete types instead of `var` when the type is not apparent from the right-hand side.
+- Comment only when necessary, 2 rows max, and assume an experienced reader. If a longer explanation is needed, extract a method with a `<summary>` instead.
 
 ## Notes
 
-- `.claude/PLAN.md` (roadmap, constraints) and `.claude/BUGS.md` exist but `.claude/` is gitignored, so they are not auto-loaded — read them when picking up planned work.
 - `README.md` predates recent features (folder-drop, WebP output, settings/custom-quality/resize, changed default preset) — treat this file as the source of truth for current behavior.
