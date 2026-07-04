@@ -10,6 +10,11 @@ namespace InstantCompress;
 public enum Preset { Low, Medium, High }
 
 /// <summary>
+/// Thrown when an input can't be decoded (unsupported format or corrupt file) — a skip, not a failure.
+/// </summary>
+public sealed class UnsupportedImageException(string message) : Exception(message);
+
+/// <summary>
 /// Encoder settings for a preset: JPEG quality (0-100) and PNG zlib level (0-9).
 /// </summary>
 public readonly record struct PresetSettings(int JpgQuality, int PngLevel);
@@ -130,7 +135,11 @@ public static class Compressor
                     results[i] = new FileResult(files[i], outPaths[i], sizes[i], outBytes, FileStatus.Ok, null);
                 }
                 catch (OperationCanceledException) { throw; }                // stop the loop (index stays Skipped)
-                catch (Exception e)                                          // per-file: record, continue
+                catch (UnsupportedImageException e)                          // undecodable: skip, not a failure
+                {
+                    results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Skipped, e.Message);
+                }
+                catch (Exception e)                                          // real per-file failure: record, continue
                 {
                     onError($"{files[i]}: {e.Message}");
                     results[i] = new FileResult(files[i], null, sizes[i], 0, FileStatus.Failed, e.Message);
@@ -286,7 +295,7 @@ public static class Compressor
     {
         ct.ThrowIfCancellationRequested();
         using var decoded = DecodeOriented(path)
-            ?? throw new Exception("Could not decode (unsupported or corrupt)"); // returns null, never throws
+            ?? throw new UnsupportedImageException("unsupported or corrupt"); // returns null, never throws
         ct.ThrowIfCancellationRequested();
         using var resized = maxDim > 0 && Math.Max(decoded.Width, decoded.Height) > maxDim
             ? Downscale(decoded, maxDim) : null;

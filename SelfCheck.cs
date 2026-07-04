@@ -53,6 +53,7 @@ public static class SelfCheck
             if (!OrientationOk()) return Fail("EXIF orientation transform wrong");
             if (!GatherOk(dir, jpgIn)) return Fail("Gather did not expand/filter correctly");
             if (!ResizeOk(inputs)) return Fail("resize did not bound output dimensions");
+            if (!SkipOk(dir, pngIn)) return Fail("corrupt input was not skipped");
             Console.WriteLine("selfcheck: OK");
             return 0;
         }
@@ -117,6 +118,24 @@ public static class SelfCheck
             if (bmp == null || Math.Max(bmp.Width, bmp.Height) > 256) return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// Verifies a corrupt image is reported as Skipped (not Failed) and raises no error, while a valid
+    /// sibling still succeeds.
+    /// </summary>
+    private static bool SkipOk(string dir, string goodImage)
+    {
+        string bad = Path.Combine(dir, "corrupt.jpg");
+        File.WriteAllBytes(bad, new byte[] { 0xFF, 0xD8, 0x00, 0x01, 0x02, 0x03 }); // JPEG magic then garbage
+        var errors = new List<string>();
+        var batch = Compressor.CompressBatch(new[] { goodImage, bad }, "jpg", Compressor.Presets[Preset.Medium],
+            0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
+        var badResult = batch.Files.First(f => f.Input == bad);
+        var goodResult = batch.Files.First(f => f.Input == goodImage);
+        return errors.Count == 0                                    // a skip is not an error
+            && badResult.Status == Compressor.FileStatus.Skipped
+            && goodResult.Status == Compressor.FileStatus.Ok;
     }
 
     /// <summary>

@@ -314,7 +314,7 @@ public partial class MainWindow : Window
                 Compressor.FileStatus.Ok =>
                     $"{name}  {HumanBytes(r.OriginalBytes),9} → {HumanBytes(r.CompressedBytes),9}  ({Ratio(r)})",
                 Compressor.FileStatus.Failed => $"{name}  failed: {r.Error}",
-                _ => $"{name}  skipped",
+                _ => r.Error != null ? $"{name}  skipped: {r.Error}" : $"{name}  skipped",
             };
         });
         return string.Join("\n", lines);
