@@ -57,7 +57,8 @@
                 Stroke="{StaticResource Muted}" StrokeThickness="1.5"
                 StrokeLineCap="Round" StrokeJoin="Round"
                 Width="40" Height="40" Stretch="Uniform" HorizontalAlignment="Center" />
-          <TextBlock Text="Drag images here" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+          <TextBlock Text="Drag images or a folder here" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" />
+          <Button Content="Choose images…" HorizontalAlignment="Center" Click="OnChooseClick" />
         </StackPanel>
 
         <StackPanel x:Name="BusyPanel" IsVisible="False" VerticalAlignment="Center" Spacing="10" Margin="32,0">

@@ -91,6 +91,23 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// Opens a file picker (whitelist-filtered) as a discoverable alternative to drag &amp; drop.
+    /// </summary>
+    private async void OnChooseClick(object? sender, RoutedEventArgs e)
+    {
+        if (_busy) return;
+        var picked = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            AllowMultiple = true,
+            Title = "Choose images",
+            FileTypeFilter = [new FilePickerFileType("Images")
+                { Patterns = [.. Compressor.SupportedExts.Select(x => "*" + x)] }],
+        });
+        var paths = picked.Select(f => f.TryGetLocalPath()).Where(p => p != null).Select(p => p!).ToArray();
+        if (paths.Length > 0) StartFrom(paths);
+    }
+
+    /// <summary>
     /// Gathers supported images from arbitrary paths (files/folders) and starts a job, or shows a notice.
     /// </summary>
     private void StartFrom(IEnumerable<string> paths)
