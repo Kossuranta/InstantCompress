@@ -165,13 +165,61 @@ public static class Compressor
     }
 
     /// <summary>
+    /// Decodes an image and applies its EXIF orientation, so pixels land in display order before the
+    /// re-encode drops the metadata. Without this, phone photos with a non-TopLeft orientation flag come
+    /// out rotated. Returns null if the file can't be decoded.
+    /// </summary>
+    private static SKBitmap? DecodeOriented(string path)
+    {
+        using var codec = SKCodec.Create(path);
+        if (codec == null) return null;
+        var raw = SKBitmap.Decode(codec);
+        if (raw == null) return null;
+        if (codec.EncodedOrigin == SKEncodedOrigin.TopLeft) return raw;
+        using (raw) return ApplyOrigin(raw, codec.EncodedOrigin);
+    }
+
+    /// <summary>
+    /// Draws <paramref name="src"/> through the transform that maps its stored pixels to display order.
+    /// Origins 5-8 (LeftTop..LeftBottom) transpose the axes, so the output swaps width and height.
+    /// </summary>
+    internal static SKBitmap ApplyOrigin(SKBitmap src, SKEncodedOrigin origin)
+    {
+        bool swap = origin >= SKEncodedOrigin.LeftTop; // 5..8 rotate/transpose -> swapped dimensions
+        var dst = new SKBitmap(swap ? src.Height : src.Width, swap ? src.Width : src.Height,
+                               src.ColorType, src.AlphaType);
+        using var canvas = new SKCanvas(dst);
+        canvas.SetMatrix(OriginMatrix(origin, src.Width, src.Height));
+        canvas.DrawBitmap(src, 0, 0);
+        canvas.Flush();
+        return dst;
+    }
+
+    // Skia's SkEncodedOriginToMatrix: (w,h) are the source dimensions; the translation terms place the
+    // rotated/flipped image back into the positive quadrant.
+    private static SKMatrix OriginMatrix(SKEncodedOrigin o, int w, int h) => o switch
+    {
+        SKEncodedOrigin.TopRight    => M(-1, 0, w, 0, 1, 0),  // mirror horizontal
+        SKEncodedOrigin.BottomRight => M(-1, 0, w, 0, -1, h), // rotate 180
+        SKEncodedOrigin.BottomLeft  => M(1, 0, 0, 0, -1, h),  // mirror vertical
+        SKEncodedOrigin.LeftTop     => M(0, 1, 0, 1, 0, 0),   // transpose
+        SKEncodedOrigin.RightTop    => M(0, -1, h, 1, 0, 0),  // rotate 90 CW
+        SKEncodedOrigin.RightBottom => M(0, -1, h, -1, 0, w), // transverse
+        SKEncodedOrigin.LeftBottom  => M(0, 1, 0, -1, 0, w),  // rotate 90 CCW
+        _                           => SKMatrix.CreateIdentity(),
+    };
+
+    private static SKMatrix M(float sx, float kx, float tx, float ky, float sy, float ty) =>
+        new() { ScaleX = sx, SkewX = kx, TransX = tx, SkewY = ky, ScaleY = sy, TransY = ty, Persp2 = 1 };
+
+    /// <summary>
     /// Decodes one image and re-encodes it to <paramref name="outPath"/>; deletes the output on error or cancel.
     /// </summary>
     private static void CompressOne(string path, string outPath, string format, PresetSettings preset, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        using var bmp = SKBitmap.Decode(path)
-            ?? throw new Exception("Could not decode (unsupported or corrupt)"); // Decode returns null, never throws
+        using var bmp = DecodeOriented(path)
+            ?? throw new Exception("Could not decode (unsupported or corrupt)"); // returns null, never throws
         ct.ThrowIfCancellationRequested();
         try
         {

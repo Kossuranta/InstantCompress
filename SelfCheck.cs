@@ -47,6 +47,7 @@ public static class SelfCheck
                         return Fail("missing or empty output: " + outPath);
                 }
             }
+            if (!OrientationOk()) return Fail("EXIF orientation transform wrong");
             Console.WriteLine("selfcheck: OK");
             return 0;
         }
@@ -58,6 +59,22 @@ public static class SelfCheck
         {
             try { Directory.Delete(dir, true); } catch { }
         }
+    }
+
+    /// <summary>
+    /// Verifies <see cref="Compressor.ApplyOrigin"/> against a hand-worked case: a 2x2 image rotated 90° CW
+    /// (RightTop) must move the bottom-left pixel to top-left and the top-left pixel to top-right.
+    /// </summary>
+    private static bool OrientationOk()
+    {
+        var a = new SKColor(10, 0, 0); var b = new SKColor(20, 0, 0);
+        var c = new SKColor(30, 0, 0); var d = new SKColor(40, 0, 0);
+        using var src = new SKBitmap(2, 2, SKColorType.Bgra8888, SKAlphaType.Opaque);
+        src.SetPixel(0, 0, a); src.SetPixel(1, 0, b);
+        src.SetPixel(0, 1, c); src.SetPixel(1, 1, d);
+        using var rot = Compressor.ApplyOrigin(src, SKEncodedOrigin.RightTop);
+        return rot.Width == 2 && rot.Height == 2
+            && rot.GetPixel(0, 0) == c && rot.GetPixel(1, 0) == a;
     }
 
     /// <summary>
