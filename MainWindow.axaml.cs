@@ -28,6 +28,8 @@ public partial class MainWindow : Window
     private long _bytesDone, _bytesTotal;
     private readonly DispatcherTimer _etaTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly IBrush _normalBorder, _accentBorder;
+    private readonly Settings _settings = SettingsStore.Load();
+    private bool _loading;             // suppress persistence while applying loaded settings to the UI
 
     /// <summary>
     /// Wires up drop-zone handlers and the coalesced progress timer.
@@ -55,6 +57,66 @@ public partial class MainWindow : Window
             (_, e) => SetDropHighlight(!_busy && e.DataTransfer.Contains(DataFormat.File)));
         DropZone.AddHandler(DragDrop.DragLeaveEvent, (_, _) => SetDropHighlight(false));
         DropZone.AddHandler(DragDrop.DropEvent, OnDrop);
+
+        ApplySettingsToUi();
+    }
+
+    /// <summary>
+    /// Applies loaded settings to the controls without triggering a save-back.
+    /// </summary>
+    private void ApplySettingsToUi()
+    {
+        _loading = true;
+        _preset = Enum.Parse<Preset>(_settings.Preset, ignoreCase: true);
+        _format = _settings.Format;
+        SelectInGroup(PresetGroup, _settings.Preset);
+        SelectInGroup(FormatGroup, _settings.Format);
+        CustomToggle.IsChecked = _settings.CustomOn;
+        CustomValue.IsEnabled = _settings.CustomOn;
+        SyncCustomRange();
+        _loading = false;
+    }
+
+    /// <summary>Checks the toggle whose Tag matches <paramref name="tag"/>, unchecks the rest.</summary>
+    private static void SelectInGroup(StackPanel group, string tag)
+    {
+        foreach (var t in group.Children.OfType<ToggleButton>())
+            t.IsChecked = (string)t.Tag! == tag;
+    }
+
+    /// <summary>Points the custom-value spinner at the range/value for the current format (JPG 1-100, PNG 0-9).</summary>
+    private void SyncCustomRange()
+    {
+        bool prev = _loading; _loading = true; // range/value churn here must not persist
+        if (_format == "jpg") { CustomValue.Minimum = 1; CustomValue.Maximum = 100; CustomValue.Value = _settings.CustomJpg; }
+        else { CustomValue.Minimum = 0; CustomValue.Maximum = 9; CustomValue.Value = _settings.CustomPng; }
+        _loading = prev;
+    }
+
+    /// <summary>Persists the current UI choices.</summary>
+    private void Save()
+    {
+        if (_loading) return;
+        _settings.Preset = _preset.ToString().ToLowerInvariant();
+        _settings.Format = _format;
+        SettingsStore.Save(_settings);
+    }
+
+    /// <summary>Enables the custom spinner and persists the toggle.</summary>
+    private void OnCustomToggled(object? sender, RoutedEventArgs e)
+    {
+        _settings.CustomOn = CustomToggle.IsChecked == true;
+        CustomValue.IsEnabled = _settings.CustomOn;
+        Save();
+    }
+
+    /// <summary>Stores the custom quality/level for the active format and persists it.</summary>
+    private void OnCustomValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_loading) return;
+        var v = (int)(CustomValue.Value ?? 0);
+        if (_format == "jpg") _settings.CustomJpg = v; else _settings.CustomPng = v;
+        Save();
     }
 
     /// <summary>
@@ -73,7 +135,8 @@ public partial class MainWindow : Window
             t.IsChecked = t == btn;
         var value = (string)btn.Tag!;
         if (group.Name == "PresetGroup") _preset = Enum.Parse<Preset>(value, ignoreCase: true);
-        else _format = value;
+        else { _format = value; SyncCustomRange(); }
+        Save();
     }
 
     /// <summary>
@@ -151,7 +214,10 @@ public partial class MainWindow : Window
         _sw.Restart();
         _etaTimer.Start();
 
-        (string fmt, var preset) = (_format, Compressor.Presets[_preset]); // captured at drop
+        // captured at drop: custom quality overrides the preset when enabled
+        (string fmt, var preset) = (_format, _settings.CustomOn
+            ? new PresetSettings(_settings.CustomJpg, _settings.CustomPng)
+            : Compressor.Presets[_preset]);
         string? outDir = null;
         try
         {

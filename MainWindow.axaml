@@ -48,6 +48,13 @@
       </Border>
     </StackPanel>
 
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,-4,0,0">
+      <CheckBox x:Name="CustomToggle" Content="Custom quality" IsCheckedChanged="OnCustomToggled"
+                VerticalAlignment="Center" />
+      <NumericUpDown x:Name="CustomValue" Minimum="1" Maximum="100" Increment="1" Width="120"
+                     IsEnabled="False" FormatString="0" ValueChanged="OnCustomValueChanged" />
+    </StackPanel>
+
     <!-- ponytail: solid border; Avalonia Border has no dash support, a Rectangle overlay isn't worth it -->
     <Border x:Name="DropZone" DragDrop.AllowDrop="True" MinHeight="220" CornerRadius="14"
             BorderThickness="2" BorderBrush="{StaticResource Faint}" Background="#10808080">
