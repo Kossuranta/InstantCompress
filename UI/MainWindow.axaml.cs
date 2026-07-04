@@ -252,7 +252,7 @@ public partial class MainWindow : Window
         // captured at drop: custom quality overrides the preset when enabled
         (string fmt, var preset) = (_format, _settings.CustomOn
             ? new PresetSettings(_settings.CustomJpg, _settings.CustomPng)
-            : Compressor.Presets[_preset]);
+            : Presets.Values[_preset]);
         int maxDim = _settings.ResizeOn ? _settings.MaxDim : 0;
         string? outDir = null;
         try

@@ -6,35 +6,15 @@ using SkiaSharp;
 namespace InstantCompress;
 
 /// <summary>
-/// Selectable compression preset.
-/// </summary>
-public enum Preset { Low, Medium, High }
-
-/// <summary>
 /// Thrown when an input can't be decoded (unsupported format or corrupt file) — a skip, not a failure.
 /// </summary>
 public sealed class UnsupportedImageException(string message) : Exception(message);
-
-/// <summary>
-/// Encoder settings for a preset: JPEG quality (0-100) and PNG zlib level (0-9).
-/// </summary>
-public readonly record struct PresetSettings(int JpgQuality, int PngLevel);
 
 /// <summary>
 /// UI-free compression engine — no dispatcher, no Avalonia types — so <see cref="SelfCheck"/> runs it headless.
 /// </summary>
 public static class Compressor
 {
-    /// <summary>
-    /// Encoder settings for each <see cref="Preset"/>.
-    /// </summary>
-    public static readonly Dictionary<Preset, PresetSettings> Presets = new()
-    {
-        [Preset.Low] = new PresetSettings(60, 6),
-        [Preset.Medium] = new PresetSettings(75, 8),
-        [Preset.High] = new PresetSettings(90, 9),
-    };
-
     /// <summary>
     /// The one supported-input whitelist used everywhere (drop, folders, file picker). No TIFF: Skia ships no codec.
     /// </summary>

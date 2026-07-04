@@ -37,7 +37,7 @@ public static class SelfCheck
             foreach (string format in new[] { "jpg", "png", "webp" })
             {
                 var errors = new List<string>();
-                Compressor.BatchResult batch = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
+                Compressor.BatchResult batch = Compressor.CompressBatch(inputs, format, Presets.Values[Preset.Medium],
                     0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
                 if (errors.Count > 0) return Fail("errors: " + string.Join("; ", errors));
                 if (batch.Files.Count != inputs.Length || !batch.Files.All(f =>
@@ -113,7 +113,7 @@ public static class SelfCheck
     private static bool ResizeOk(string[] inputs)
     {
         var errors = new List<string>();
-        Compressor.BatchResult batch = Compressor.CompressBatch(inputs, "jpg", Compressor.Presets[Preset.Medium],
+        Compressor.BatchResult batch = Compressor.CompressBatch(inputs, "jpg", Presets.Values[Preset.Medium],
             256, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
         if (errors.Count > 0) return false;
         foreach (string f in Directory.EnumerateFiles(batch.OutDir))
@@ -133,7 +133,7 @@ public static class SelfCheck
         string bad = Path.Combine(dir, "corrupt.jpg");
         File.WriteAllBytes(bad, new byte[] { 0xFF, 0xD8, 0x00, 0x01, 0x02, 0x03 }); // JPEG magic then garbage
         var errors = new List<string>();
-        Compressor.BatchResult batch = Compressor.CompressBatch(new[] { goodImage, bad }, "jpg", Compressor.Presets[Preset.Medium],
+        Compressor.BatchResult batch = Compressor.CompressBatch(new[] { goodImage, bad }, "jpg", Presets.Values[Preset.Medium],
             0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
         Compressor.FileResult badResult = batch.Files.First(f => f.Input == bad);
         Compressor.FileResult goodResult = batch.Files.First(f => f.Input == goodImage);

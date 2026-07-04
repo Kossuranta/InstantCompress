@@ -22,8 +22,9 @@ Build (0 warnings) **and** `--selfcheck` (exit 0). For non-trivial engine logic,
 
 Single Avalonia window, plain code-behind, split into two folders that mirror the load-bearing layer split (same flat `InstantCompress` namespace, no per-folder namespacing):
 
-- **`Engine/` — the engine.** `Compressor.cs` is dispatcher-free and Avalonia-free by design, so `SelfCheck` can run the exact production path headless. Never introduce UI types or `Dispatcher` here. Entry point `CompressBatch` returns a `BatchResult` (output folder + one `FileResult` per input) and runs `Parallel.ForEach` over a `NoBuffering` partitioner (one file index per grab, so a tail of large files can't starve idle cores). Also holds `SelfCheck.cs` and `Settings.cs`.
-- **`UI/` — UI + orchestration.** `MainWindow.axaml.cs` owns all thread marshalling. Also holds `App.axaml(.cs)` and `Program.cs`.
+- **`Engine/` — the engine.** `Compressor.cs` is dispatcher-free and Avalonia-free by design, so `SelfCheck` can run the exact production path headless. Never introduce UI types or `Dispatcher` here. Entry point `CompressBatch` returns a `BatchResult` (output folder + one `FileResult` per input) and runs `Parallel.ForEach` over a `NoBuffering` partitioner (one file index per grab, so a tail of large files can't starve idle cores). Also holds `SelfCheck.cs`, `Settings.cs`, and `Preset.cs` (the `Preset` enum, `PresetSettings`, and the `Presets.Values` lookup).
+- **`UI/` — UI + orchestration.** `MainWindow.axaml.cs` owns all thread marshalling. Also holds `App.axaml(.cs)`.
+- **`Program.cs`** (repo root) — process entry point; routes to `--selfcheck` or launches the Avalonia app.
 
 Key cross-file mechanics:
 
