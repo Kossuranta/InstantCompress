@@ -323,8 +323,8 @@ public static partial class Compressor
                     // BlendOnBlack flattens alpha inside the native encoder (JPEG has no alpha).
                     "jpg" => pix.Encode(ws, new SKJpegEncoderOptions(preset.JpgQuality,
                                  SKJpegEncoderDownsample.Downsample420, SKJpegEncoderAlphaOption.BlendOnBlack)),
-                    // Lossy WebP; quality shares the 0-100 scale with JPEG.
-                    "webp" => pix.Encode(ws, new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, preset.JpgQuality)),
+                    // Lossy WebP; quality is on the same 0-100 scale as JPEG but tuned separately.
+                    "webp" => pix.Encode(ws, new SKWebpEncoderOptions(SKWebpEncoderCompression.Lossy, preset.WebpQuality)),
                     // SKPngEncoderOptions is the only Skia PNG path honoring a zlib level;
                     // SKBitmap.Encode(Png, quality) ignores quality entirely.
                     _ => pix.Encode(ws, new SKPngEncoderOptions(SKPngEncoderFilterFlags.AllFilters, preset.PngLevel)),
