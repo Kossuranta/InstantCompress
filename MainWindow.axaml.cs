@@ -74,6 +74,9 @@ public partial class MainWindow : Window
         CustomToggle.IsChecked = _settings.CustomOn;
         CustomValue.IsEnabled = _settings.CustomOn;
         SyncCustomRange();
+        ResizeToggle.IsChecked = _settings.ResizeOn;
+        ResizeValue.IsEnabled = _settings.ResizeOn;
+        ResizeValue.Value = _settings.MaxDim;
         _loading = false;
     }
 
@@ -116,6 +119,22 @@ public partial class MainWindow : Window
         if (_loading) return;
         var v = (int)(CustomValue.Value ?? 0);
         if (_format == "jpg") _settings.CustomJpg = v; else _settings.CustomPng = v;
+        Save();
+    }
+
+    /// <summary>Enables the resize spinner and persists the toggle.</summary>
+    private void OnResizeToggled(object? sender, RoutedEventArgs e)
+    {
+        _settings.ResizeOn = ResizeToggle.IsChecked == true;
+        ResizeValue.IsEnabled = _settings.ResizeOn;
+        Save();
+    }
+
+    /// <summary>Stores the max-dimension cap and persists it.</summary>
+    private void OnResizeValueChanged(object? sender, NumericUpDownValueChangedEventArgs e)
+    {
+        if (_loading) return;
+        _settings.MaxDim = (int)(ResizeValue.Value ?? _settings.MaxDim);
         Save();
     }
 
@@ -218,10 +237,11 @@ public partial class MainWindow : Window
         (string fmt, var preset) = (_format, _settings.CustomOn
             ? new PresetSettings(_settings.CustomJpg, _settings.CustomPng)
             : Compressor.Presets[_preset]);
+        int maxDim = _settings.ResizeOn ? _settings.MaxDim : 0;
         string? outDir = null;
         try
         {
-            var job = Task.Run(() => Compressor.CompressBatch(files, fmt, preset,
+            var job = Task.Run(() => Compressor.CompressBatch(files, fmt, preset, maxDim,
                 p => Volatile.Write(ref _latestProgress, p), // hot path: no dispatcher, timer picks it up
                 err => Dispatcher.UIThread.Post(() => AppendError(err)),
                 _cts.Token));

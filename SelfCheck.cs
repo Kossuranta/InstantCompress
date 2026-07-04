@@ -38,7 +38,7 @@ public static class SelfCheck
             {
                 var errors = new List<string>();
                 string outDir = Compressor.CompressBatch(inputs, format, Compressor.Presets[Preset.Medium],
-                    _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
+                    0, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
                 if (errors.Count > 0) return Fail("errors: " + string.Join("; ", errors));
                 foreach (string name in new[] { $"grad_png.{format}", $"grad_jpg.{format}", $"grad_png_1.{format}" })
                 {
@@ -49,6 +49,7 @@ public static class SelfCheck
             }
             if (!OrientationOk()) return Fail("EXIF orientation transform wrong");
             if (!GatherOk(dir, jpgIn)) return Fail("Gather did not expand/filter correctly");
+            if (!ResizeOk(inputs)) return Fail("resize did not bound output dimensions");
             Console.WriteLine("selfcheck: OK");
             return 0;
         }
@@ -95,6 +96,24 @@ public static class SelfCheck
             && got.Contains(existingImage)                // whitelisted file kept
             && got.Count(p => Path.GetFullPath(p) == Path.GetFullPath(existingImage)) == 1 // deduped
             && got.All(Compressor.IsSupported);           // nothing unsupported slipped through
+    }
+
+    /// <summary>
+    /// Verifies the resize path bounds the longest side: the 1024px test images compressed with maxDim=256
+    /// must decode back to at most 256px on their longest side.
+    /// </summary>
+    private static bool ResizeOk(string[] inputs)
+    {
+        var errors = new List<string>();
+        string outDir = Compressor.CompressBatch(inputs, "jpg", Compressor.Presets[Preset.Medium],
+            256, _ => { }, e => { lock (errors) errors.Add(e); }, CancellationToken.None);
+        if (errors.Count > 0) return false;
+        foreach (string f in Directory.EnumerateFiles(outDir))
+        {
+            using var bmp = SKBitmap.Decode(f);
+            if (bmp == null || Math.Max(bmp.Width, bmp.Height) > 256) return false;
+        }
+        return true;
     }
 
     /// <summary>

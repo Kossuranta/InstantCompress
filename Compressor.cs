@@ -69,7 +69,7 @@ public static class Compressor
     /// </remarks>
     /// <returns>The directory, returned even when cancelled (partial output is kept).</returns>
     public static string CompressBatch(IReadOnlyList<string> files, string format, PresetSettings preset,
-                                       Action<Progress> onProgress, Action<string> onError,
+                                       int maxDim, Action<Progress> onProgress, Action<string> onError,
                                        CancellationToken ct)
     {
         string baseDir = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(files[0]))!,
@@ -109,7 +109,7 @@ public static class Compressor
             Parallel.ForEach(Partitioner.Create(Enumerable.Range(0, files.Count),
                                                 EnumerablePartitionerOptions.NoBuffering), po, i =>
             {
-                try { CompressOne(files[i], outPaths[i], format, preset, ct); }
+                try { CompressOne(files[i], outPaths[i], format, preset, maxDim, ct); }
                 catch (OperationCanceledException) { throw; }                // stop the loop
                 catch (Exception e) { onError($"{files[i]}: {e.Message}"); } // per-file: collect, continue
                 onProgress(new Progress(Interlocked.Increment(ref done), files.Count,
@@ -243,14 +243,30 @@ public static class Compressor
         new() { ScaleX = sx, SkewX = kx, TransX = tx, SkewY = ky, ScaleY = sy, TransY = ty, Persp2 = 1 };
 
     /// <summary>
-    /// Decodes one image and re-encodes it to <paramref name="outPath"/>; deletes the output on error or cancel.
+    /// Returns <paramref name="src"/> scaled so its longest side is <paramref name="maxDim"/>, aspect preserved.
     /// </summary>
-    private static void CompressOne(string path, string outPath, string format, PresetSettings preset, CancellationToken ct)
+    private static SKBitmap Downscale(SKBitmap src, int maxDim)
+    {
+        double scale = (double)maxDim / Math.Max(src.Width, src.Height);
+        int w = Math.Max(1, (int)Math.Round(src.Width * scale));
+        int h = Math.Max(1, (int)Math.Round(src.Height * scale));
+        // SKFilterQuality.High = Lanczos-ish downsample; fine here, and it's the 2.88 API (pinned, see PLAN).
+        return src.Resize(new SKImageInfo(w, h), SKFilterQuality.High) ?? throw new Exception("Resize failed");
+    }
+
+    /// <summary>
+    /// Decodes one image (orientation applied), optionally downscales to <paramref name="maxDim"/> (0 = off),
+    /// and re-encodes it to <paramref name="outPath"/>; deletes the output on error or cancel.
+    /// </summary>
+    private static void CompressOne(string path, string outPath, string format, PresetSettings preset, int maxDim, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        using var bmp = DecodeOriented(path)
+        using var decoded = DecodeOriented(path)
             ?? throw new Exception("Could not decode (unsupported or corrupt)"); // returns null, never throws
         ct.ThrowIfCancellationRequested();
+        using var resized = maxDim > 0 && Math.Max(decoded.Width, decoded.Height) > maxDim
+            ? Downscale(decoded, maxDim) : null;
+        var bmp = resized ?? decoded;
         try
         {
             // 64KB buffer: Skia pushes many small blocks; File.Create's 4KB default = syscall storm.

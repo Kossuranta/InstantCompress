@@ -12,6 +12,8 @@ public sealed class Settings
     public bool CustomOn { get; set; }
     public int CustomJpg { get; set; } = 80; // 1-100
     public int CustomPng { get; set; } = 6;  // 0-9
+    public bool ResizeOn { get; set; }
+    public int MaxDim { get; set; } = 2048;   // longest-side cap in px when ResizeOn
 }
 
 /// <summary>
