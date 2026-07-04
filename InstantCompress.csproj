@@ -8,7 +8,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Avalonia needs this for OLE drag&drop on Windows -->
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\icon.ico" />
+  </ItemGroup>
 
   <!-- Publish props only when a RID is given, so plain `dotnet build`/`dotnet run`
        (no RID) still works. NETSDK1097 fires if PublishSingleFile is set RID-less. -->
